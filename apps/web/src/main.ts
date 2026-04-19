@@ -1,10 +1,10 @@
 /**
  * ZipIt Web App — Main UI controller
- * Matrix-style UI wired to @zipit/core with persistent Hash Routing.
+ * Matrix-style UI wired to @khatiwadaprashant/zipit-core with persistent Hash Routing.
  */
 
-import { createZipIt, getBrowserCapabilities, formatEta } from '@zipit/core';
-import type { ProgressStats, FileEntry } from '@zipit/core';
+import { createZipIt, getBrowserCapabilities, formatEta } from '@khatiwadaprashant/zipit-core';
+import type { ProgressStats, FileEntry } from '@khatiwadaprashant/zipit-core';
 
 // ─── Browser Capabilities ─────────────────────────────────────────────────────
 const caps = getBrowserCapabilities();

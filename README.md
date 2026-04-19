@@ -1,7 +1,7 @@
 # ZipIt ⚡
 
-[![npm version](https://img.shields.io/npm/v/@zipit/core?color=7c6fff&style=flat-square)](https://www.npmjs.com/package/@zipit/core)
-[![Bundle Size](https://img.shields.io/bundlephobia/minzip/@zipit/core?label=core%20gzipped&color=22d3a0&style=flat-square)](https://bundlephobia.com/package/@zipit/core)
+[![npm version](https://img.shields.io/npm/v/@khatiwadaprashant/zipit-core?color=7c6fff&style=flat-square)](https://www.npmjs.com/package/@khatiwadaprashant/zipit-core)
+[![Bundle Size](https://img.shields.io/bundlephobia/minzip/@khatiwadaprashant/zipit-core?label=core%20gzipped&color=22d3a0&style=flat-square)](https://bundlephobia.com/package/@khatiwadaprashant/zipit-core)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/github/actions/workflow/status/rochaksulu/zipit/ci.yml?label=tests&style=flat-square)](https://github.com/rochaksulu/zipit/actions)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?style=flat-square)](https://www.typescriptlang.org/)
@@ -9,7 +9,7 @@
 > **Client-side ZIP streaming and resumable batch download library for the browser.**
 > No server. No RAM spikes. No compromise.
 
-[**→ Live Demo**](https://zipit.dev) · [**Documentation**](https://zipit.dev/docs) · [**npm**](https://www.npmjs.com/package/@zipit/core)
+[**→ Live Demo**](https://zipit.dev) · [**Documentation**](https://zipit.dev/docs) · [**npm**](https://www.npmjs.com/package/@khatiwadaprashant/zipit-core)
 
 ---
 
@@ -30,14 +30,14 @@ Traditional file downloads are broken for large batches:
 ## Getting Started
 
 ```bash
-npm install @zipit/core fflate
+npm install @khatiwadaprashant/zipit-core fflate
 # or
-pnpm add @zipit/core fflate
+pnpm add @khatiwadaprashant/zipit-core fflate
 ```
 
 **In 5 lines:**
 ```ts
-import { createZipIt } from '@zipit/core';
+import { createZipIt } from '@khatiwadaprashant/zipit-core';
 
 const ds = createZipIt({ concurrency: 4 });
 ds.add('https://example.com/photo1.jpg', { folder: 'photos/2024' });
@@ -47,11 +47,11 @@ await ds.zip('my-photos.zip'); // ← Streams to disk. No RAM spike. No server.
 
 ### React
 ```bash
-npm install @zipit/react @zipit/core fflate
+npm install @khatiwadaprashant/zipit-react @khatiwadaprashant/zipit-core fflate
 ```
 
 ```tsx
-import { useZipIt } from '@zipit/react';
+import { useZipIt } from '@khatiwadaprashant/zipit-react';
 
 function Gallery({ urls }) {
   const { add, start, zip, progress, files } = useZipIt({ concurrency: 4 });
@@ -199,7 +199,7 @@ app.get('/zip', async (req, res) => {
 **After:**
 ```ts
 // Client-side: instant, free, streams directly to disk
-import { createZipIt } from '@zipit/core';
+import { createZipIt } from '@khatiwadaprashant/zipit-core';
 const ds = createZipIt();
 urls.forEach(url => ds.add(url));
 await ds.zip('archive.zip');

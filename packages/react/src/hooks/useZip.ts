@@ -6,7 +6,7 @@
  *
  * @example
  * ```tsx
- * import { useZip } from '@zipit/react';
+ * import { useZip } from '@khatiwadaprashant/zipit-react';
  *
  * function ZipButton({ urls }: { urls: string[] }) {
  *   const { zip, isZipping, progress } = useZip();
@@ -20,7 +20,8 @@
  */
 
 import { useCallback, useState } from 'react';
-import { createZipIt } from '@zipit/core';
+import { createZipIt } from '@khatiwadaprashant/zipit-core';
+import type { ProgressStats } from '@khatiwadaprashant/zipit-core';
 
 export interface UseZipReturn {
   /**
@@ -59,7 +60,7 @@ export function useZip(): UseZipReturn {
 
       try {
         const ds = createZipIt({
-          onProgress: (stats) => setProgress(stats.overallProgress),
+          onProgress: (stats: ProgressStats) => setProgress(stats.overallProgress),
         });
 
         urls.forEach((url) =>

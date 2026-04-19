@@ -3,7 +3,7 @@
  *
  * @example
  * ```ts
- * import { createZipIt } from '@zipit/core';
+ * import { createZipIt } from '@khatiwadaprashant/zipit-core';
  *
  * const ds = createZipIt({ concurrency: 4 });
  * ds.add('https://example.com/photo1.jpg', { folder: 'photos' });

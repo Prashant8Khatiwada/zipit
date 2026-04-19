@@ -1,5 +1,5 @@
 /**
- * Full TypeScript type surface for @zipit/core
+ * Full TypeScript type surface for @khatiwadaprashant/zipit-core
  * All public-facing types are exported from this module.
  */
 

@@ -1,12 +1,12 @@
 /**
  * useZipIt — primary React hook for batch downloading.
  *
- * Wraps `createZipIt` from `@zipit/core` and bridges it
+ * Wraps `createZipIt` from `@khatiwadaprashant/zipit-core` and bridges it
  * into React's state model with stable callbacks.
  *
  * @example
  * ```tsx
- * import { useZipIt } from '@zipit/react';
+ * import { useZipIt } from '@khatiwadaprashant/zipit-react';
  *
  * function MyDownloader({ urls }: { urls: string[] }) {
  *   const { progress, start, pause, resume, zip, files } = useZipIt({
@@ -33,7 +33,7 @@ import {
   type ProgressStats,
   type FileEntry,
   type AddFileOptions,
-} from '@zipit/core';
+} from '@khatiwadaprashant/zipit-core';
 
 export type UseZipItOptions = ZipItOptions;
 
@@ -111,12 +111,12 @@ export function useZipIt(options: UseZipItOptions = {}): UseZipItReturn {
   const [isBusy, setIsBusy] = useState(false);
 
   useEffect(() => {
-    const unsubProgress = instance.on('progress', (stats) => {
+    const unsubProgress = instance.on('progress', (stats: ProgressStats) => {
       setProgress(stats);
       setIsBusy(instance.isBusy());
     });
 
-    const unsubComplete = instance.on('complete', (stats) => {
+    const unsubComplete = instance.on('complete', (stats: ProgressStats) => {
       setProgress(stats);
       setIsBusy(false);
     });

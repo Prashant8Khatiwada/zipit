@@ -1,9 +1,9 @@
 /**
- * @zipit/core — Public API surface
+ * @khatiwadaprashant/zipit-core — Public API surface
  *
  * Tree-shakeable exports. Import only what you need:
- *   import { createZipIt } from '@zipit/core'
- *   import type { ZipItOptions } from '@zipit/core'
+ *   import { createZipIt } from '@khatiwadaprashant/zipit-core'
+ *   import type { ZipItOptions } from '@khatiwadaprashant/zipit-core'
  */
 
 // ─── Factory function (primary API) ─────────────────────────────────────────

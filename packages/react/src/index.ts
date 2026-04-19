@@ -1,8 +1,8 @@
 /**
- * @zipit/react — React hooks
+ * @khatiwadaprashant/zipit-react — React hooks
  *
  * @example
- * import { useZipIt } from '@zipit/react';
+ * import { useZipIt } from '@khatiwadaprashant/zipit-react';
  *
  * const { files, progress, start, pause, zip } = useZipIt({ concurrency: 4 });
  */

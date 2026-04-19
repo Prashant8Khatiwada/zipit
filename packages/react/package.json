@@ -1,7 +1,7 @@
 {
   "name": "@khatiwadaprashant/zipit-react",
   "version": "0.1.0",
-  "description": "React hooks for @zipit/core — useZipIt, useZip",
+  "description": "React hooks for @khatiwadaprashant/zipit-core — useZipIt, useZip",
   "license": "MIT",
   "author": "Rochak Sulu",
   "keywords": ["zipit", "react", "hooks", "download", "zip", "streaming"],

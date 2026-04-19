@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZipIt — High-Performance Archival</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Geist+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── ZIPIT CORE PALETTE ──────────────────────────── */
+    :root {
+      --bg:           #0d0d0d;
+      --primary:      #22c55e; /* Vibrant Green */
+      --glow:         #4ade80; /* Inner Glow */
+      --highlight:    #86efac; /* Highlight */
+      --card:         #111111; /* Icon BG / Card */
+      --text:         #ffffff; /* Text Light */
+      --text-dim:     #a3a3a3;
+      
+      --border:       rgba(34, 197, 94, 0.15);
+      --border-hi:    rgba(34, 197, 94, 0.4);
+      --r-lg:         24px;
+      --r-md:         12px;
+      
+      --grad:         linear-gradient(135deg, #22c55e, #4ade80);
+      --shadow-glow:  0 0 20px rgba(34, 197, 94, 0.3);
+    }
+
+    /* ── BASE ────────────────────────────────────────── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── LAYOUT ──────────────────────────────────────── */
+    .app {
+      height: 100svh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      height: 70px;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13, 13, 13, 0.8);
+      backdrop-filter: blur(20px);
+      z-index: 1000;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: #ffffff; /* User requested Icon BG white */
+      color: #000;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: 1.2rem;
+    }
+    .logo-name {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.03em;
+    }
+
+    /* ── HASH ROUTER VIEWS ──────────────────────────── */
+    .viewport {
+      flex: 1;
+      position: relative;
+    }
+
+    .view {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    .view.active { display: flex; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── LANDING VIEW ────────────────────────────────── */
+    #view-landing h1 {
+      font-size: 6rem;
+      font-weight: 900;
+      line-height: 0.9;
+      margin-bottom: 2rem;
+      text-align: center;
+      letter-spacing: -0.06em;
+    }
+    #view-landing h1 span {
+      background: var(--grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 40px rgba(34, 197, 94, 0.2);
+    }
+    .intro-p {
+      color: var(--text-dim);
+      font-size: 1.25rem;
+      max-width: 500px;
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    /* ── CONFIG VIEW ─────────────────────────────────── */
+    .workspace {
+      width: 100%;
+      max-width: 1100px;
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 1.5rem;
+      height: 80%;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-header {
+      padding: 1.25rem;
+      background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+    }
+
+    textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 1.5rem;
+      color: #fff;
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.95rem;
+      resize: none;
+      outline: none;
+    }
+
+    .api-bar {
+      padding: 1rem 1.25rem;
+      background: rgba(34, 197, 94, 0.03);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 1rem;
+    }
+    .api-bar input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      outline: none;
+    }
+
+    /* ── PROGRESS VIEW ───────────────────────────────── */
+    .big-pct {
+      font-size: 14rem;
+      font-weight: 900;
+      letter-spacing: -0.08em;
+      line-height: 1;
+      color: var(--primary);
+      text-shadow: 0 0 60px rgba(34, 197, 94, 0.4);
+    }
+    .prog-status {
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4rem;
+      font-size: 1.1rem;
+    }
+
+    .track {
+      width: 100%;
+      max-width: 600px;
+      height: 4px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+      margin-bottom: 4rem;
+      position: relative;
+    }
+    .fill {
+      position: absolute;
+      top: 0; left: 0; height: 100%;
+      background: var(--primary);
+      box-shadow: 0 0 15px var(--glow);
+      transition: width 0.3s ease;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      width: 100%;
+      max-width: 600px;
+    }
+    .stat {
+      text-align: left;
+      padding: 1rem;
+      border-left: 2px solid var(--border);
+    }
+    .st-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.25rem; }
+    .st-val { font-weight: 700; font-size: 1.2rem; }
+
+    /* ── BUTTONS ─────────────────────────────────────── */
+    .btn {
+      padding: 0.8rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid transparent;
+      transition: 0.2s;
+    }
+    .btn-primary { background: var(--primary); color: #000; }
+    .btn-primary:hover { background: var(--glow); box-shadow: 0 0 30px rgba(34, 197, 94, 0.4); }
+
+    .btn-outline { background: transparent; border-color: var(--border); color: #fff; }
+    .btn-outline:hover { background: rgba(255,255,255,0.05); }
+
+    .btn-big { padding: 1.2rem 3rem; font-size: 1.1rem; border-radius: 12px; }
+
+    /* Pills */
+    .pills {
+      display: flex; background: #000; border-radius: 10px; padding: 4px; border: 1px solid var(--border);
+    }
+    .pill {
+      padding: 0.6rem 1.2rem; flex: 1; border-radius: 7px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: var(--text-dim);
+    }
+    .pill.active { background: var(--card); color: var(--primary); }
+
+    /* ── STEP STICKER ────────────────────────────────── */
+    .steps {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .s-item {
+      display: flex; align-items: center; gap: 0.75rem; opacity: 0.2; transition: 0.3s;
+    }
+    .s-item.active { opacity: 1; }
+    .s-dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 10px var(--primary); }
+    .s-name { font-size: 0.65rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.1em; color: #fff; }
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <a href="#landing" class="logo">
+        <div class="logo-icon">Z</div>
+        <div class="logo-name">zipit</div>
+      </a>
+      <div style="display: flex; gap: 1rem;">
+        <button class="btn btn-outline" style="font-size: 0.8rem;" onclick="location.hash='#config'">New Project</button>
+      </div>
+    </header>
+
+    <div class="viewport">
+      <!-- DASH: LANDING -->
+      <section id="view-landing" class="view">
+        <h1>ZIP THE <span>WORLD</span></h1>
+        <p class="intro-p">Professional-grade browser archival. No server. No RAM limits. Just pure speed.</p>
+        <button class="btn btn-primary btn-big" onclick="location.hash='#config'">Get Started →</button>
+      </section>
+
+      <!-- DASH: CONFIG -->
+      <section id="view-config" class="view">
+        <div class="workspace">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Project Assets</span>
+              <span id="asset-count" style="font-size: 0.7rem; color: var(--text-dim);">0 URLs</span>
+            </div>
+            <textarea id="url-input" placeholder="Paste asset URLs..."></textarea>
+            <div class="api-bar">
+              <input id="api-url" type="text" placeholder="Import via API endpoint..." />
+              <button id="fetch-api-btn" class="btn btn-outline" style="padding: 0.4rem 1rem; font-size: 0.7rem;">Fetch</button>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div class="card">
+              <div class="card-header"><span class="card-title">Archive Specs</span></div>
+              <div style="padding: 1.5rem;">
+                <div class="pills">
+                  <div id="mode-folder" class="pill active" onclick="setMode('folder')">Folder Sync</div>
+                  <div id="mode-zip" class="pill" onclick="setMode('zip')">Stream ZIP</div>
+                </div>
+                <div style="margin-top: 1.5rem;">
+                  <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 1rem;">
+                    <span style="color: var(--text-dim);">Concurrency</span>
+                    <span>4 Slots</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                    <span style="color: var(--text-dim);">RAM Buffer</span>
+                    <span>5 MB</span>
+                  </div>
+                </div>
+                <button id="go-btn" class="btn btn-primary" style="width: 100%; margin-top: 2rem; justify-content: center;">Execute Job</button>
+              </div>
+            </div>
+
+            <div id="resume-card" class="card" style="display: none; border-color: var(--primary);">
+              <div class="card-header"><span class="card-title">Interrupted Session</span></div>
+              <div style="padding: 1.25rem;">
+                <p id="resume-text" style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 1rem;"></p>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button id="resume-btn" class="btn btn-primary" style="flex: 1; height: 32px; font-size: 0.7rem; justify-content: center;">Resume</button>
+                  <button id="dismiss-btn" class="btn btn-outline" style="flex: 1; height: 32px; font-size: 0.7rem; justify-content: center;">Wipe</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- DASH: PROGRESS -->
+      <section id="view-transit" class="view">
+        <div class="big-pct" id="prog-pct">0%</div>
+        <div class="prog-status" id="prog-status">Pre-flight checks...</div>
+        
+        <div class="track"><div class="fill" id="prog-bar"></div></div>
+
+        <div class="stats">
+          <div class="stat"><div class="st-label">Throughput</div><div class="st-val" id="pm-speed">0 MB/s</div></div>
+          <div class="stat"><div class="st-label">Index</div><div class="st-val" id="pm-files">0 / 0</div></div>
+          <div class="stat"><div class="st-label">ETA</div><div class="st-val" id="pm-eta">--</div></div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 4rem;">
+          <button id="ctrl-pause" class="btn btn-outline" style="font-size: 0.75rem;">Pause</button>
+          <button id="ctrl-resume" class="btn btn-primary" style="font-size: 0.75rem; display: none;">Resume</button>
+          <button id="ctrl-reset" class="btn btn-outline" style="font-size: 0.75rem; color: #ff5e5e; border-color: #ff5e5e33;">Cancel Job</button>
+        </div>
+
+        <div class="card" style="width: 100%; max-width: 600px; margin-top: 3rem; max-height: 250px; overflow-y: auto;">
+          <div id="file-list"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- UI STEPS -->
+    <div class="steps">
+      <div class="s-item active" id="dot-landing">
+        <div class="s-name">Intro</div><div class="s-dot"></div>
+      </div>
+      <div class="s-item" id="dot-config">
+        <div class="s-name">Assets</div><div class="s-dot"></div>
+      </div>
+      <div class="s-item" id="dot-transit">
+        <div class="s-name">Transit</div><div class="s-dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── HASH ROUTER ─────────────────────────────────
+    function syncHash() {
+      const hash = location.hash.replace('#', '') || 'landing';
+      const views = ['landing', 'config', 'transit'];
+      
+      views.forEach(v => {
+        const view = document.getElementById('view-' + v);
+        const dot = document.getElementById('dot-' + v);
+        if (v === hash) {
+          view.classList.add('active');
+          dot.classList.add('active');
+        } else {
+          view.classList.remove('active');
+          dot.classList.remove('active');
+        }
+      });
+    }
+
+    window.addEventListener('hashchange', syncHash);
+    window.addEventListener('load', syncHash);
+
+    // Initial default
+    if (!location.hash) location.hash = 'landing';
+
+    // ── UI HELPERS ──────────────────────────────────
+    window._mode = 'folder';
+    function setMode(m) {
+      window._mode = m;
+      document.getElementById('mode-folder').classList.toggle('active', m === 'folder');
+      document.getElementById('mode-zip').classList.toggle('active', m === 'zip');
+      document.getElementById('go-btn').textContent = m === 'zip' ? 'Execute ZIP Stream' : 'Execute Job';
+    }
+
+    document.getElementById('url-input').addEventListener('input', e => {
+      const urls = e.target.value.split(/\n|,/).filter(u => u.trim().startsWith('http'));
+      document.getElementById('asset-count').textContent = urls.length + ' URLs';
+    });
+  </script>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

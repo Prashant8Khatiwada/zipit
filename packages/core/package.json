@@ -1,0 +1,71 @@
+{
+  "name": "@zipit/core",
+  "version": "0.1.0",
+  "description": "High-performance client-side ZIP streaming and resumable batch download engine",
+  "license": "MIT",
+  "author": "Rochak Sulu",
+  "keywords": [
+    "download",
+    "zip",
+    "streaming",
+    "browser",
+    "opfs",
+    "file-system-access",
+    "indexeddb",
+    "resumable",
+    "batch-download"
+  ],
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./worker": {
+      "import": "./dist/workers/download.worker.js",
+      "types": "./dist/workers/download.worker.d.ts"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "fflate": "^0.8.2",
+    "streamsaver": "^2.0.6",
+    "vite": "^5.0.0",
+    "vite-plugin-dts": "^3.8.0",
+    "vitest": "^1.5.0",
+    "typescript": "^5.4.0",
+    "@vitest/coverage-v8": "^1.5.0"
+  },
+  "peerDependencies": {
+    "fflate": "^0.8.0"
+  },
+  "peerDependenciesMeta": {
+    "fflate": {
+      "optional": false
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rochaksulu/zipit"
+  },
+  "homepage": "https://zipit.dev"
+}

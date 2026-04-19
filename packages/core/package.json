@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "High-performance client-side ZIP streaming and resumable batch download engine",
   "license": "MIT",
-  "author": "Rochak Sulu",
+  "author": "Prashant Khatiwada",
   "keywords": [
     "download",
     "zip",
@@ -66,7 +66,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/rochaksulu/zipit"
+    "url": "https://github.com/Prashant8Khatiwada/zipit"
   },
   "homepage": "https://zipit.dev"
 }

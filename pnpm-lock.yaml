@@ -20,7 +20,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@zipit/core':
+      '@khatiwadaprashant/zipit-core':
         specifier: workspace:*
         version: link:../../packages/core
       fflate:
@@ -45,6 +45,9 @@ importers:
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.39
+      '@types/streamsaver':
+        specifier: ^2.0.5
+        version: 2.0.5
       '@vitest/coverage-v8':
         specifier: ^1.5.0
         version: 1.6.1(vitest@1.6.1(@types/node@20.19.39))
@@ -68,7 +71,14 @@ importers:
         version: 1.6.1(@types/node@20.19.39)
 
   packages/react:
+    dependencies:
+      fflate:
+        specifier: ^0.8.0
+        version: 0.8.2
     devDependencies:
+      '@khatiwadaprashant/zipit-core':
+        specifier: workspace:*
+        version: link:../core
       '@testing-library/react':
         specifier: ^15.0.0
         version: 15.0.7(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -81,9 +91,6 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^1.5.0
         version: 1.6.1(vitest@1.6.1(@types/node@20.19.39))
-      '@zipit/core':
-        specifier: workspace:*
-        version: link:../core
       react:
         specifier: ^18.0.0
         version: 18.3.1

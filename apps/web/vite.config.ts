@@ -4,7 +4,7 @@ import { resolve } from 'path';
 export default defineConfig({
   resolve: {
     alias: {
-      '@zipit/core': resolve(__dirname, '../../packages/core/src/index.ts'),
+      '@khatiwadaprashant/zipit/core': resolve(__dirname, '../../packages/core/src/index.ts'),
     },
   },
   build: {
@@ -12,7 +12,7 @@ export default defineConfig({
     target: 'ES2022',
   },
   optimizeDeps: {
-    exclude: ['@zipit/core'],
+    exclude: ['@khatiwadaprashant/zipit/core'],
   },
   worker: {
     format: 'es',

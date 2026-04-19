@@ -1,5 +1,5 @@
 {
-  "name": "@zipit/web",
+  "name": "@khatiwadaprashant/zipit-web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@zipit/core": "workspace:*",
+    "@khatiwadaprashant/zipit-core": "workspace:*",
     "fflate": "^0.8.2",
     "streamsaver": "^2.0.6"
   },

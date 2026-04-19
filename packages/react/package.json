@@ -1,5 +1,5 @@
 {
-  "name": "@zipit/react",
+  "name": "@khatiwadaprashant/zipit-react",
   "version": "0.1.0",
   "description": "React hooks for @zipit/core — useZipIt, useZip",
   "license": "MIT",
@@ -26,12 +26,13 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "react": "^18.0.0",
-    "@zipit/core": "workspace:*"
+    "@khatiwadaprashant/zipit-core": "workspace:*",
+    "fflate": "^0.8.0",
+    "react": ">=16.8.0"
   },
   "devDependencies": {
     "@types/react": "^18.0.0",
-    "@zipit/core": "workspace:*",
+    "@khatiwadaprashant/zipit-core": "workspace:*",
     "react": "^18.0.0",
     "vite": "^5.0.0",
     "vite-plugin-dts": "^3.8.0",

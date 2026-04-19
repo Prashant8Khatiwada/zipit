@@ -4,15 +4,15 @@
   "private": true,
   "description": "ZipIt — Client-side ZIP streaming & batch download library",
   "scripts": {
-    "dev": "pnpm --filter @zipit/web dev",
-    "dev:docs": "pnpm --filter @zipit/docs dev",
-    "build": "pnpm -r --filter '@zipit/core' --filter '@zipit/react' build",
+    "dev": "pnpm --filter @khatiwadaprashant/zipit-web dev",
+    "dev:docs": "pnpm --filter @khatiwadaprashant/zipit-docs dev",
+    "build": "pnpm -r --filter '@khatiwadaprashant/zipit-core' --filter '@khatiwadaprashant/zipit-react' build",
     "build:all": "pnpm -r build",
     "test": "pnpm -r test",
     "test:coverage": "pnpm -r test:coverage",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "release": "pnpm -r --filter '@zipit/core' --filter '@zipit/react' publish --access public"
+    "release": "pnpm -r --filter '@khatiwadaprashant/zipit-core' --filter '@khatiwadaprashant/zipit-react' publish --access public"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

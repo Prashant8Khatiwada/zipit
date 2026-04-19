@@ -236,4 +236,4 @@ PRs welcome! Please follow [Conventional Commits](https://www.conventionalcommit
 
 ## License
 
-MIT © Rochak Sulu
+MIT © Prashant Khatiwada

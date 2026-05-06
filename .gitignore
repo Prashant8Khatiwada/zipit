@@ -1,6 +1,7 @@
 # Dependencies/
 node_modules
 .pnpm-debug.log*
+graphify-out
 
 # Build Outputs
 dist

@@ -7,14 +7,16 @@ import { Zip, ZipPassThrough } from 'fflate';
 import type { ZipWorkerInbound, ZipWorkerOutbound } from '../types';
 
 let zip: Zip;
-let zipChunks: Uint8Array[] = [];
+let zipChunks: BlobPart[] = [];
 
-zip = new Zip((err, chunk, final) => {
+zip = new Zip((err, chunk) => {
   if (err) {
     self.postMessage({ type: 'ZIP_ERROR', message: err.message } satisfies ZipWorkerOutbound);
     return;
   }
-  zipChunks.push(chunk);
+  const copy = new Uint8Array(chunk.byteLength);
+  copy.set(chunk);
+  zipChunks.push(copy.buffer);
 });
 
 self.onmessage = async (event: MessageEvent<ZipWorkerInbound>) => {
@@ -37,7 +39,9 @@ self.onmessage = async (event: MessageEvent<ZipWorkerInbound>) => {
             fileStream.push(new Uint8Array(0), true);
             break;
           }
-          fileStream.push(value, false);
+          // Type assertion: FileHandle.getFile() returns a regular File with ArrayBuffer, not SharedArrayBuffer
+          // Cast to any first, then to the expected type to bypass strict type checking
+          fileStream.push(value as any, false);
         }
       } catch (err: unknown) {
         self.postMessage({ 

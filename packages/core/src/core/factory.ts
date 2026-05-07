@@ -7,10 +7,6 @@ import type {
   ZipItInstance,
   AddFileOptions,
   FileDescriptor,
-  FileProgress,
-  GlobalProgress,
-  ProgressHandler,
-  ErrorHandler,
 } from '../types';
 import { StateStore } from '../store/StateStore';
 import { DownloadEngine } from './DownloadEngine';
@@ -89,7 +85,6 @@ export function createZipIt(config: Partial<ZipitConfig> = {}): ZipItInstance {
 
     async zip(outputFilename = 'zipit-archive.zip') {
       const files = engine.getFiles();
-      const progresses = engine.getProgress(); // This actually returns GlobalProgress, we need individual progresses if we want to check staged status
       // Actually DownloadEngine.getFiles() now returns FileDescriptor[]
       // We might need to know which ones are staged. 
       // For now, let's just pass them to zipEngine.

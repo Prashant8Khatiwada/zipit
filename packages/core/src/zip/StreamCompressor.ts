@@ -11,9 +11,9 @@ export class StreamCompressor {
   private readable: ReadableStream<Uint8Array>;
   private controller!: ReadableStreamDefaultController<Uint8Array>;
 
-  constructor(options: { maxInFlight?: number; streamBufferBytes?: number } = {}) {
+  constructor(_options: { maxInFlight?: number; streamBufferBytes?: number } = {}) {
     this.worker = new Worker(
-      new URL('../workers/zip.worker.js', import.meta.url),
+      new URL('./zip.worker.js', import.meta.url),
       { type: 'module' }
     );
 

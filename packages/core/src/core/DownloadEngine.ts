@@ -224,7 +224,7 @@ export class DownloadEngine {
 
   private startWorker(descriptor: FileDescriptor): void {
     const worker = new Worker(
-      new URL('../workers/download.worker.js', import.meta.url),
+      new URL('./download.worker.js', import.meta.url),
       { type: 'module' }
     );
     this.activeWorkers.set(descriptor.id, worker);
@@ -259,7 +259,7 @@ export class DownloadEngine {
           const fileError = new Error(msg.message);
           this.activeWorkers.delete(descriptor.id);
           worker.terminate();
-          this.updateFileProgress(descriptor.id, { phase: 'error', error: msg.message });
+          this.updateFileProgress(descriptor.id, { phase: 'error', error: fileError });
           this.listeners.error.forEach((h) => h(fileError, descriptor.id));
           this.processQueue();
           break;
@@ -271,7 +271,7 @@ export class DownloadEngine {
       type: 'START_CHUNK',
       id: descriptor.id,
       url: descriptor.url,
-      startByte: currentProgress.downloadedBytes || 0,
+      startByte: this.progresses.get(descriptor.id)?.downloadedBytes ?? 0,
     } satisfies DownloadWorkerInbound);
   }
 
@@ -301,7 +301,7 @@ export class DownloadEngine {
       this.updateFileProgress(descriptor.id, { phase: 'done' });
     } catch (err: unknown) {
       const e = err as Error;
-      this.updateFileProgress(descriptor.id, { phase: 'error', error: e.message });
+      this.updateFileProgress(descriptor.id, { phase: 'error', error: e });
       this.listeners.error.forEach((h) => h(e, descriptor.id));
     } finally {
       this.activeTransfers.delete(descriptor.id);

@@ -4,7 +4,7 @@ import {
   idFromUrl,
   formatBytes,
   formatEta,
-} from '../../src/utils/helpers';
+} from '../src/utils/helpers';
 
 // ─── filenameFromUrl ──────────────────────────────────────────────────────────
 describe('filenameFromUrl', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { getBrowserCapabilities, supportsOPFS, supportsFileSystemAccess } from '../../src/utils/capabilities';
+import { getBrowserCapabilities, supportsOPFS, supportsFileSystemAccess } from '../src/utils/capabilities';
 
 describe('Browser capabilities', () => {
   beforeEach(() => {

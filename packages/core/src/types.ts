@@ -31,7 +31,7 @@ export interface FileProgress {
   phase: FilePhase;
   downloadedBytes: number;
   totalBytes?: number;
-  error?: string;
+  error?: Error;
 }
 
 /** Describes the state of a download session for persistence. */

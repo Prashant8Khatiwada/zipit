@@ -4,7 +4,7 @@
  */
 
 import { createZipIt, getBrowserCapabilities, formatEta } from '@khatiwadaprashant/zipit-core';
-import type { ProgressStats, FileEntry } from '@khatiwadaprashant/zipit-core';
+import type { FileDescriptor, FilePhase, FileProgress, GlobalProgress } from '@khatiwadaprashant/zipit-core';
 
 // ─── Browser Capabilities ─────────────────────────────────────────────────────
 const caps = getBrowserCapabilities();
@@ -12,13 +12,17 @@ const caps = getBrowserCapabilities();
 // ─── ZipIt Engine ─────────────────────────────────────────────────────────────
 const ds = createZipIt({
   concurrency: 4,
-  onProgress: renderProgress,
-  onComplete: (stats: ProgressStats) => {
-    updateStatus(`SUCCESS // ${stats.totalFiles} ASSETS COMMITTED`);
-  },
-  onError: (err: Error, file: FileEntry) => {
-    console.error(`ERROR on ${file.filename}:`, err);
-  },
+});
+
+const fileProgress = new Map<string, FileProgress>();
+
+ds.on('progress', renderProgress);
+ds.on('error', (err: Error, fileId: string) => {
+  const file = ds.getFiles().find((candidate) => candidate.id === fileId);
+  console.error(`ERROR on ${file?.path ?? fileId}:`, err);
+});
+ds.on('file-progress', (progress: FileProgress) => {
+  fileProgress.set(progress.fileId, progress);
 });
 
 // ─── DOM References ───────────────────────────────────────────────────────────
@@ -59,6 +63,14 @@ function updateStatus(msg: string) {
   try {
     const pending = await ds.hydrate();
     if (pending.length > 0) {
+      pending.forEach((file) => {
+        fileProgress.set(file.id, {
+          fileId: file.id,
+          phase: 'pending',
+          downloadedBytes: 0,
+          totalBytes: file.sizeBytes,
+        });
+      });
       resumeText.textContent = `${pending.length} nodes detected from previous buffer.`;
       resumeCard.style.display = 'flex';
       // Auto-focus the config if session found
@@ -133,7 +145,16 @@ goBtn.addEventListener('click', async () => {
     return;
   }
 
-  urls.forEach(url => ds.add(url));
+  urls.forEach((url) => {
+    const file = ds.add(url);
+    fileProgress.set(file.id, {
+      fileId: file.id,
+      phase: 'pending',
+      downloadedBytes: 0,
+      totalBytes: file.sizeBytes,
+    });
+  });
+  renderFileList(ds.getFiles());
   location.hash = '#transit';
   updateStatus('INITIALIZING TRANSIT...');
 
@@ -173,8 +194,13 @@ ctrlReset.addEventListener('click', async () => {
 });
 
 // ─── Rendering Pipeline ───────────────────────────────────────────────────────
-function renderProgress(stats: ProgressStats) {
-  const pct = Math.round(stats.overallProgress * 100);
+function renderProgress(stats: GlobalProgress) {
+  const pct =
+    stats.totalBytes && stats.totalBytes > 0
+      ? Math.round((stats.downloadedBytes / stats.totalBytes) * 100)
+      : stats.totalFiles > 0
+        ? Math.round((stats.completedFiles / stats.totalFiles) * 100)
+        : 0;
   
   if (progBar) progBar.style.width = `${pct}%`;
   if (progPct) progPct.textContent = `${pct}%`;
@@ -182,19 +208,34 @@ function renderProgress(stats: ProgressStats) {
   if (pmSpeed) pmSpeed.textContent = fmtSpeed(stats.speedBytesPerSecond);
   if (pmEta)   pmEta.textContent   = stats.etaSeconds != null ? formatEta(stats.etaSeconds) : '--';
 
-  if (stats.stagedFiles > 0 && getMode() === 'folder') {
-    updateStatus(`WRITING TO DISK // ${stats.stagedFiles} CLUSTERS`);
-  } else if (stats.activeFiles > 0) {
-    updateStatus(`SATURATING LINK // ${stats.activeFiles} ACTIVE WORKERS`);
+  const phases = Array.from(fileProgress.values()).map((progress) => progress.phase);
+  const stagedFiles = phases.filter((phase) => phase === 'staging').length;
+  const activeFiles = phases.filter((phase) => phase === 'downloading').length;
+
+  if (stats.phase === 'done') {
+    updateStatus(`SUCCESS // ${stats.totalFiles} ASSETS COMMITTED`);
+  } else if (stagedFiles > 0 && getMode() === 'folder') {
+    updateStatus(`WRITING TO DISK // ${stagedFiles} CLUSTERS`);
+  } else if (activeFiles > 0) {
+    updateStatus(`SATURATING LINK // ${activeFiles} ACTIVE WORKERS`);
   }
 
-  renderFileList(stats.files);
+  renderFileList(ds.getFiles());
 }
 
-function renderFileList(files: Map<string, FileEntry>) {
-  const arr = Array.from(files.values()).sort((a, b) => {
-    const order: any = { downloading: 0, transferring: 1, staged: 2, queued: 3, done: 4, error: 5 };
-    return (order[a.status] ?? 9) - (order[b.status] ?? 9);
+function renderFileList(files: FileDescriptor[]) {
+  const arr = [...files].sort((a, b) => {
+    const order: Record<FilePhase, number> = {
+      downloading: 0,
+      staging: 1,
+      pending: 2,
+      zipping: 3,
+      done: 4,
+      error: 5,
+    };
+    const phaseA = fileProgress.get(a.id)?.phase ?? 'pending';
+    const phaseB = fileProgress.get(b.id)?.phase ?? 'pending';
+    return order[phaseA] - order[phaseB];
   });
 
   const existing = new Set(Array.from(fileList.children).map(c => (c as HTMLElement).dataset.id));
@@ -217,7 +258,7 @@ function renderFileList(files: Map<string, FileEntry>) {
       row.style.fontFamily = 'Geist Mono';
       row.dataset.id = file.id;
       row.innerHTML = `
-        <span style="color: #fff; opacity: 0.7;">> ${file.filename}</span>
+        <span style="color: #fff; opacity: 0.7;">> ${file.path}</span>
         <span class="s-tag" style="font-weight: 700; color: #22c55e;">${statusLabel}</span>
       `;
       fileList.appendChild(row);
@@ -228,13 +269,14 @@ function renderFileList(files: Map<string, FileEntry>) {
   existing.forEach(id => fileList.querySelector(`[data-id="${id}"]`)?.remove());
 }
 
-function getStatusLabel(f: FileEntry): string {
-  if (f.status === 'done') return 'DONE';
-  if (f.status === 'downloading') return 'ACTIVE';
-  if (f.status === 'staged') return 'STAGED';
-  if (f.status === 'transferring') return 'MOVING';
-  if (f.status === 'error') return 'FAIL';
-  return f.status.toUpperCase();
+function getStatusLabel(file: FileDescriptor): string {
+  const phase = fileProgress.get(file.id)?.phase ?? 'pending';
+  if (phase === 'done') return 'DONE';
+  if (phase === 'downloading') return 'ACTIVE';
+  if (phase === 'staging') return 'STAGED';
+  if (phase === 'zipping') return 'ZIPPING';
+  if (phase === 'error') return 'FAIL';
+  return phase.toUpperCase();
 }
 
 function fmtSpeed(bps: number): string {

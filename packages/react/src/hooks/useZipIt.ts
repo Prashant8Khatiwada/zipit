@@ -28,20 +28,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   createZipIt,
-  type ZipItOptions,
+  type ZipitConfig,
   type ZipItInstance,
-  type ProgressStats,
-  type FileEntry,
+  type GlobalProgress,
+  type FileDescriptor,
   type AddFileOptions,
 } from '@khatiwadaprashant/zipit-core';
 
-export type UseZipItOptions = ZipItOptions;
+export type UseZipItOptions = Partial<ZipitConfig>;
 
 export interface UseZipItReturn {
   /** Add a single URL to the download queue. */
-  add: (url: string, options?: AddFileOptions) => FileEntry;
+  add: (url: string, options?: AddFileOptions) => FileDescriptor;
   /** Add multiple URLs to the download queue. */
-  addAll: (urls: string[], options?: AddFileOptions) => FileEntry[];
+  addAll: (urls: string[], options?: AddFileOptions) => FileDescriptor[];
   /** Start all queued downloads. Optionally prompt for a save folder. */
   start: (options?: { saveToFolder?: boolean }) => Promise<void>;
   /** Pause active downloads (resumable). */
@@ -58,13 +58,13 @@ export interface UseZipItReturn {
   /** Prompt folder picker and save staged files to local disk. */
   saveToFolder: () => Promise<void>;
   /** Hydrate state from previous session (call on mount). */
-  hydrate: () => Promise<FileEntry[]>;
+  hydrate: () => Promise<FileDescriptor[]>;
   /** Clear all state and OPFS cache. */
   reset: () => Promise<void>;
   /** Live progress statistics, updated on every animation frame. */
-  progress: ProgressStats;
-  /** All tracked files, keyed by ID. */
-  files: Map<string, FileEntry>;
+  progress: GlobalProgress;
+  /** All tracked files. */
+  files: FileDescriptor[];
   /** Whether downloads are currently paused. */
   isPaused: boolean;
   /** Whether there are active downloads in-flight. */
@@ -73,17 +73,14 @@ export interface UseZipItReturn {
   instance: ZipItInstance;
 }
 
-const EMPTY_PROGRESS: ProgressStats = {
+const EMPTY_PROGRESS: GlobalProgress = {
   totalFiles: 0,
   completedFiles: 0,
-  stagedFiles: 0,
-  activeFiles: 0,
-  totalBytes: 0,
+  totalBytes: undefined,
   downloadedBytes: 0,
-  overallProgress: 0,
   speedBytesPerSecond: 0,
-  etaSeconds: null,
-  files: new Map(),
+  etaSeconds: undefined,
+  phase: 'downloading',
 };
 
 /**
@@ -106,24 +103,20 @@ export function useZipIt(options: UseZipItOptions = {}): UseZipItReturn {
     []
   );
 
-  const [progress, setProgress] = useState<ProgressStats>(EMPTY_PROGRESS);
+  const [progress, setProgress] = useState<GlobalProgress>(EMPTY_PROGRESS);
+  const [files, setFiles] = useState<FileDescriptor[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
 
   useEffect(() => {
-    const unsubProgress = instance.on('progress', (stats: ProgressStats) => {
+    const unsubProgress = instance.on('progress', (stats: GlobalProgress) => {
       setProgress(stats);
+      setFiles(instance.getFiles());
       setIsBusy(instance.isBusy());
-    });
-
-    const unsubComplete = instance.on('complete', (stats: ProgressStats) => {
-      setProgress(stats);
-      setIsBusy(false);
     });
 
     return () => {
       unsubProgress();
-      unsubComplete();
     };
   }, [instance]);
 
@@ -181,9 +174,10 @@ export function useZipIt(options: UseZipItOptions = {}): UseZipItReturn {
 
   const reset = useCallback(async () => {
     await instance.reset();
-    setProgress(EMPTY_PROGRESS);
-    setIsBusy(false);
-    setIsPaused(false);
+      setProgress(EMPTY_PROGRESS);
+      setFiles([]);
+      setIsBusy(false);
+      setIsPaused(false);
   }, [instance]);
 
   return {
@@ -198,7 +192,7 @@ export function useZipIt(options: UseZipItOptions = {}): UseZipItReturn {
     hydrate,
     reset,
     progress,
-    files: progress.files,
+    files,
     isPaused,
     isBusy,
     instance,

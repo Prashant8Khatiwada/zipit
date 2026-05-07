@@ -21,7 +21,7 @@
 
 import { useCallback, useState } from 'react';
 import { createZipIt } from '@khatiwadaprashant/zipit-core';
-import type { ProgressStats } from '@khatiwadaprashant/zipit-core';
+import type { GlobalProgress } from '@khatiwadaprashant/zipit-core';
 
 export interface UseZipReturn {
   /**
@@ -58,9 +58,17 @@ export function useZip(): UseZipReturn {
       setProgress(0);
       setError(null);
 
+      let unsubscribe: (() => void) | undefined;
       try {
-        const ds = createZipIt({
-          onProgress: (stats: ProgressStats) => setProgress(stats.overallProgress),
+        const ds = createZipIt();
+        unsubscribe = ds.on('progress', (stats: GlobalProgress) => {
+          const byteProgress =
+            stats.totalBytes && stats.totalBytes > 0
+              ? stats.downloadedBytes / stats.totalBytes
+              : 0;
+          const fileProgress =
+            stats.totalFiles > 0 ? stats.completedFiles / stats.totalFiles : 0;
+          setProgress(Math.max(byteProgress, fileProgress));
         });
 
         urls.forEach((url) =>
@@ -73,6 +81,7 @@ export function useZip(): UseZipReturn {
       } catch (err: unknown) {
         setError(err instanceof Error ? err : new Error(String(err)));
       } finally {
+        unsubscribe?.();
         setIsZipping(false);
         setProgress(1);
       }

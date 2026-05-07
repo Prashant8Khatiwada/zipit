@@ -53,6 +53,12 @@ export {
   getBrowserCapabilities,
 } from './utils/capabilities';
 
+export {
+  supportsOpfs,
+  supportsRangeRequests,
+  getBestStorageStrategy,
+} from './compat';
+
 // ─── Formatting utilities ──────────────────────────────────────────────────────
 export { formatBytes, formatEta } from './utils/helpers';
 

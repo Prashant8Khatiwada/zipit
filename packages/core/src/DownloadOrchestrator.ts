@@ -8,6 +8,7 @@ import type {
 } from './types';
 import OpfsStore from './storage/OpfsStore';
 import SessionStore from './storage/SessionStore';
+import DownloadWorker from './workers/download.worker?worker&inline';
 
 interface QueueItem {
   file: FileDescriptor;
@@ -175,7 +176,7 @@ export class DownloadOrchestrator {
   }
 
   private startItem(item: QueueItem): void {
-    const worker = new Worker(new URL('./download.worker.js', import.meta.url), { type: 'module' });
+    const worker = new DownloadWorker();
     const progress: FileProgress = {
       fileId: item.file.id,
       phase: 'downloading',

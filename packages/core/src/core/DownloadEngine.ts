@@ -19,6 +19,7 @@ import type {
 } from '../types';
 import { StateStore } from '../store/StateStore';
 import { rafThrottle } from '../utils/helpers';
+import DownloadWorker from '../workers/download.worker?worker&inline';
 
 type EventMap = {
   progress: ProgressHandler[];
@@ -223,10 +224,7 @@ export class DownloadEngine {
   }
 
   private startWorker(descriptor: FileDescriptor): void {
-    const worker = new Worker(
-      new URL('./download.worker.js', import.meta.url),
-      { type: 'module' }
-    );
+    const worker = new DownloadWorker();
     this.activeWorkers.set(descriptor.id, worker);
     this.updateFileProgress(descriptor.id, { phase: 'downloading' });
     const startByte = this.progresses.get(descriptor.id)?.downloadedBytes ?? 0;

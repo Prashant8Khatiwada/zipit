@@ -1,6 +1,7 @@
 import type { FileDescriptor, ZipitConfig } from './types';
 import OpfsStore from './storage/OpfsStore';
 import { FileSystemWriter, type IFileSystemWriter } from './fs/FileSystemWriter';
+import ZipWorker from './workers/zip.worker?worker&inline';
 
 interface ZipProgressPayload {
   compressedBytes: number;
@@ -48,9 +49,7 @@ export class ZipPipeline {
     this.preparePromise = (async () => {
       this.writer = await FileSystemWriter.requestSaveFile(suggestedZipName);
       this.writerChannel = new MessageChannel();
-      this.worker = new Worker(new URL('./zip.worker.js', import.meta.url), {
-        type: 'module',
-      });
+      this.worker = new ZipWorker();
 
       this.writerChannel.port1.onmessage = async (
         event: MessageEvent<{ type: 'ZipData'; chunk: Uint8Array }>

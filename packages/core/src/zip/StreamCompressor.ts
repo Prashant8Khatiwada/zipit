@@ -5,6 +5,7 @@
  */
 
 import type { ZipWorkerInbound, ZipWorkerOutbound } from '../types';
+import ZipWorker from '../workers/zip.worker?worker&inline';
 
 export class StreamCompressor {
   private worker: Worker;
@@ -12,10 +13,7 @@ export class StreamCompressor {
   private controller!: ReadableStreamDefaultController<Uint8Array>;
 
   constructor(_options: { maxInFlight?: number; streamBufferBytes?: number } = {}) {
-    this.worker = new Worker(
-      new URL('./zip.worker.js', import.meta.url),
-      { type: 'module' }
-    );
+    this.worker = new ZipWorker();
 
     this.readable = new ReadableStream<Uint8Array>({
       start: (controller) => {

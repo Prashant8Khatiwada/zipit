@@ -7,6 +7,7 @@ export default defineConfig({
     dts({
       insertTypesEntry: true,
       rollupTypes: true,
+      staticImport: true,
     }),
   ],
   build: {
@@ -17,15 +18,19 @@ export default defineConfig({
       fileName: (format) => `index.${format === 'es' ? 'js' : 'cjs'}`,
     },
     rollupOptions: {
-      external: ['fflate'],
+      external: ['fflate', 'streamsaver'],
       output: {
         globals: {
           fflate: 'fflate',
+          streamsaver: 'streamsaver',
         },
       },
     },
     target: 'ES2022',
     sourcemap: true,
     minify: false,
+  },
+  worker: {
+    format: 'es',
   },
 });

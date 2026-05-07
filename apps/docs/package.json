@@ -5,5 +5,10 @@
   "scripts": {
     "dev": "echo 'Docs dev server placeholder'",
     "build": "echo 'Docs build placeholder'"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.39.0",
+    "astro": "^6.3.0",
+    "sharp": "^0.34.5"
   }
 }

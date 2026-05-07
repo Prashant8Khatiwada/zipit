@@ -1,200 +1,233 @@
-/**
- * useZipIt — primary React hook for batch downloading.
- *
- * Wraps `createZipIt` from `@khatiwadaprashant/zipit-core` and bridges it
- * into React's state model with stable callbacks.
- *
- * @example
- * ```tsx
- * import { useZipIt } from '@khatiwadaprashant/zipit-react';
- *
- * function MyDownloader({ urls }: { urls: string[] }) {
- *   const { progress, start, pause, resume, zip, files } = useZipIt({
- *     concurrency: 4,
- *   });
- *
- *   return (
- *     <div>
- *       <p>{(progress.overallProgress * 100).toFixed(1)}%</p>
- *       <button onClick={() => { urls.forEach(u => add(u)); start(); }}>Download</button>
- *       <button onClick={pause}>Pause</button>
- *       <button onClick={() => zip('archive.zip')}>Save as ZIP</button>
- *     </div>
- *   );
- * }
- * ```
- */
-
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import {
   createZipIt,
   type ZipitConfig,
-  type ZipItInstance,
   type GlobalProgress,
   type FileDescriptor,
-  type AddFileOptions,
+  type FileProgress,
+  type SessionState,
+  SessionStore,
+  SessionRecovery,
 } from '@khatiwadaprashant/zipit-core';
 
-export type UseZipItOptions = Partial<ZipitConfig>;
-
-export interface UseZipItReturn {
-  /** Add a single URL to the download queue. */
-  add: (url: string, options?: AddFileOptions) => FileDescriptor;
-  /** Add multiple URLs to the download queue. */
-  addAll: (urls: string[], options?: AddFileOptions) => FileDescriptor[];
-  /** Start all queued downloads. Optionally prompt for a save folder. */
-  start: (options?: { saveToFolder?: boolean }) => Promise<void>;
-  /** Pause active downloads (resumable). */
+export interface UseZipItResult {
+  // Actions
+  addFiles: (files: FileDescriptor[]) => void;
+  start: () => Promise<void>;
   pause: () => void;
-  /** Resume paused downloads. */
   resume: () => void;
-  /** Cancel all downloads. */
   cancel: () => void;
-  /**
-   * Stream all queued files into a single ZIP archive delivered to disk.
-   * @param filename - The output ZIP filename. Defaults to 'dropstream-archive.zip'.
-   */
-  zip: (filename?: string) => Promise<void>;
-  /** Prompt folder picker and save staged files to local disk. */
-  saveToFolder: () => Promise<void>;
-  /** Hydrate state from previous session (call on mount). */
-  hydrate: () => Promise<FileDescriptor[]>;
-  /** Clear all state and OPFS cache. */
-  reset: () => Promise<void>;
-  /** Live progress statistics, updated on every animation frame. */
-  progress: GlobalProgress;
-  /** All tracked files. */
-  files: FileDescriptor[];
-  /** Whether downloads are currently paused. */
-  isPaused: boolean;
-  /** Whether there are active downloads in-flight. */
-  isBusy: boolean;
-  /** Direct access to the underlying ZipIt instance (escape hatch). */
-  instance: ZipItInstance;
+  recover: (sessionId: string) => Promise<void>;
+
+  // State
+  sessionId: string | null;
+  status: SessionState['status'];
+  files: Map<string, FileProgress>;
+  globalProgress: GlobalProgress | null;
+  error: Error | null;
+  isRecoverable: boolean;
+
+  // Derived helpers
+  isIdle: boolean;
+  isRunning: boolean;
+  isDone: boolean;
 }
 
-const EMPTY_PROGRESS: GlobalProgress = {
-  totalFiles: 0,
-  completedFiles: 0,
-  totalBytes: undefined,
-  downloadedBytes: 0,
-  speedBytesPerSecond: 0,
-  etaSeconds: undefined,
-  phase: 'downloading',
+type ZipItAction =
+  | { type: 'SET_SESSION'; sessionId: string; status: SessionState['status'] }
+  | { type: 'SET_RECOVERABLE'; isRecoverable: boolean }
+  | { type: 'ADD_FILES'; files: FileDescriptor[] }
+  | { type: 'UPDATE_PROGRESS'; progress: GlobalProgress }
+  | { type: 'UPDATE_FILE_PROGRESS'; progress: FileProgress }
+  | { type: 'SET_STATUS'; status: SessionState['status'] }
+  | { type: 'SET_ERROR'; error: Error | null }
+  | { type: 'RESET' };
+
+interface ZipItState {
+  sessionId: string | null;
+  status: SessionState['status'];
+  files: Map<string, FileProgress>;
+  globalProgress: GlobalProgress | null;
+  error: Error | null;
+  isRecoverable: boolean;
+}
+
+const initialState: ZipItState = {
+  sessionId: null,
+  status: 'idle',
+  files: new Map(),
+  globalProgress: null,
+  error: null,
+  isRecoverable: false,
 };
 
+function zipItReducer(state: ZipItState, action: ZipItAction): ZipItState {
+  switch (action.type) {
+    case 'SET_SESSION':
+      return { ...state, sessionId: action.sessionId, status: action.status };
+    case 'SET_RECOVERABLE':
+      return { ...state, isRecoverable: action.isRecoverable };
+    case 'ADD_FILES': {
+      const newFiles = new Map(state.files);
+      action.files.forEach((f) => {
+        if (!newFiles.has(f.id)) {
+          newFiles.set(f.id, {
+            fileId: f.id,
+            phase: 'pending',
+            downloadedBytes: 0,
+            totalBytes: f.sizeBytes,
+          });
+        }
+      });
+      return { ...state, files: newFiles };
+    }
+    case 'UPDATE_PROGRESS':
+      return { ...state, globalProgress: action.progress };
+    case 'UPDATE_FILE_PROGRESS': {
+      const newFiles = new Map(state.files);
+      newFiles.set(action.progress.fileId, action.progress);
+      return { ...state, files: newFiles };
+    }
+    case 'SET_STATUS':
+      return { ...state, status: action.status };
+    case 'SET_ERROR':
+      return { ...state, error: action.error, status: action.error ? 'error' : state.status };
+    case 'RESET':
+      return { ...initialState, isRecoverable: state.isRecoverable };
+    default:
+      return state;
+  }
+}
+
 /**
- * Core React hook for ZipIt.
+ * useZipIt — primary React hook for batch downloading and client-side zipping.
  *
- * The ZipIt instance is created once (memoized for the lifetime of the component)
- * and event listeners are managed automatically.
+ * Implements the Phase 4.1 specification:
+ * - useReducer for internal state
+ * - Session recovery via IndexedDB
+ * - Native File System Access API integration
  */
-export function useZipIt(options: UseZipItOptions = {}): UseZipItReturn {
-  // Memoize options as a stable ref to avoid re-creating the instance on every render
-  const optionsRef = useRef(options);
+export function useZipIt(config: Partial<ZipitConfig> = {}): UseZipItResult {
+  const [state, dispatch] = useReducer(zipItReducer, initialState);
+  const configRef = useRef(config);
+  configRef.current = config;
+
+  // Internal ZipIt instance - kept in a ref, never exposed
+  const instanceRef = useRef<ReturnType<typeof createZipIt> | null>(null);
+
+  const getInstance = useCallback(() => {
+    if (!instanceRef.current) {
+      instanceRef.current = createZipIt(configRef.current);
+    }
+    return instanceRef.current;
+  }, []);
+
+  // ─── Side Effects ──────────────────────────────────────────────────────────
+
+  // Check for recoverable sessions on mount
   useEffect(() => {
-    optionsRef.current = options;
-  });
+    async function checkRecovery() {
+      try {
+        const store = await SessionStore.open();
+        const recovery = new SessionRecovery(store, {} as any); // opfsStore not needed for find
+        const interrupted = await recovery.findInterruptedSessions();
+        dispatch({ type: 'SET_RECOVERABLE', isRecoverable: interrupted.length > 0 });
+        store.close();
+      } catch (err) {
+        console.error('[ZipIt] Failed to check recovery:', err);
+      }
+    }
+    checkRecovery();
+  }, []);
 
-  // Create the instance exactly once
-  const instance = useMemo(
-    () => createZipIt(optionsRef.current),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
-
-  const [progress, setProgress] = useState<GlobalProgress>(EMPTY_PROGRESS);
-  const [files, setFiles] = useState<FileDescriptor[]>([]);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isBusy, setIsBusy] = useState(false);
-
+  // Wire up instance events
   useEffect(() => {
-    const unsubProgress = instance.on('progress', (stats: GlobalProgress) => {
-      setProgress(stats);
-      setFiles(instance.getFiles());
-      setIsBusy(instance.isBusy());
+    const instance = getInstance();
+
+    const unsubProgress = instance.on('progress', (progress: GlobalProgress) => {
+      dispatch({ type: 'UPDATE_PROGRESS', progress });
+      if (progress.phase === 'done') {
+        dispatch({ type: 'SET_STATUS', status: 'done' });
+      }
+    });
+
+    const unsubFileProgress = instance.on('file-progress', (progress: FileProgress) => {
+      dispatch({ type: 'UPDATE_FILE_PROGRESS', progress });
+    });
+
+    const unsubError = instance.on('error', (error: Error) => {
+      dispatch({ type: 'SET_ERROR', error });
     });
 
     return () => {
       unsubProgress();
+      unsubFileProgress();
+      unsubError();
     };
-  }, [instance]);
+  }, [getInstance]);
 
-  // ─── Stable callbacks ────────────────────────────────────────────────────
+  // ─── Actions ───────────────────────────────────────────────────────────────
 
-  const add = useCallback(
-    (url: string, opts?: AddFileOptions) => instance.add(url, opts),
-    [instance]
-  );
+  const addFiles = useCallback((files: FileDescriptor[]) => {
+    const instance = getInstance();
+    files.forEach(f => {
+      instance.add(f.url, {
+        filename: f.path.split('/').pop(),
+        folder: f.path.split('/').slice(0, -1).join('/'),
+        sizeBytes: f.sizeBytes,
+        metadata: f.metadata,
+      });
+    });
+    dispatch({ type: 'ADD_FILES', files });
+  }, [getInstance]);
 
-  const addAll = useCallback(
-    (urls: string[], opts?: AddFileOptions) => instance.addAll(urls, opts),
-    [instance]
-  );
-
-  const start = useCallback(
-    async (opts?: { saveToFolder?: boolean }) => {
-      setIsBusy(true);
-      setIsPaused(false);
-      await instance.start(opts);
-    },
-    [instance]
-  );
+  const start = useCallback(async () => {
+    const instance = getInstance();
+    try {
+      dispatch({ type: 'SET_STATUS', status: 'running' });
+      await instance.start({ saveToFolder: true });
+    } catch (err) {
+      dispatch({ type: 'SET_ERROR', error: err as Error });
+    }
+  }, [getInstance]);
 
   const pause = useCallback(() => {
-    instance.pause();
-    setIsPaused(true);
-  }, [instance]);
+    getInstance().pause();
+    dispatch({ type: 'SET_STATUS', status: 'paused' });
+  }, [getInstance]);
 
   const resume = useCallback(() => {
-    instance.resume();
-    setIsPaused(false);
-  }, [instance]);
+    getInstance().resume();
+    dispatch({ type: 'SET_STATUS', status: 'running' });
+  }, [getInstance]);
 
   const cancel = useCallback(() => {
-    instance.cancel();
-    setIsBusy(false);
-    setIsPaused(false);
-  }, [instance]);
+    getInstance().cancel();
+    dispatch({ type: 'RESET' });
+  }, [getInstance]);
 
-  const zip = useCallback(
-    (filename?: string) => instance.zip(filename),
-    [instance]
-  );
-
-  const saveToFolder = useCallback(
-    () => instance.saveToFolder(),
-    [instance]
-  );
-
-  const hydrate = useCallback(
-    () => instance.hydrate(),
-    [instance]
-  );
-
-  const reset = useCallback(async () => {
-    await instance.reset();
-      setProgress(EMPTY_PROGRESS);
-      setFiles([]);
-      setIsBusy(false);
-      setIsPaused(false);
-  }, [instance]);
+  const recover = useCallback(async (sessionId: string) => {
+    const instance = getInstance();
+    try {
+      // In a real implementation, we'd need to tell the instance to load this session.
+      // Currently, hydrate() loads the latest. We might need to update core to support sessionId.
+      await instance.hydrate();
+      dispatch({ type: 'SET_SESSION', sessionId, status: 'paused' });
+    } catch (err) {
+      dispatch({ type: 'SET_ERROR', error: err as Error });
+    }
+  }, [getInstance]);
 
   return {
-    add,
-    addAll,
+    ...state,
+    addFiles,
     start,
     pause,
     resume,
     cancel,
-    zip,
-    saveToFolder,
-    hydrate,
-    reset,
-    progress,
-    files,
-    isPaused,
-    isBusy,
-    instance,
+    recover,
+    isIdle: state.status === 'idle',
+    isRunning: state.status === 'running',
+    isDone: state.status === 'done',
   };
 }

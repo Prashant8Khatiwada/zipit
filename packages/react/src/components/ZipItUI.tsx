@@ -27,6 +27,10 @@ export const ZipItUI: React.FC<ZipItUIProps> = ({ config, className = '', zipNam
   return (
     <ZipItProvider config={config}>
       <div className={`${styles.container} ${className}`}>
+        <div className={styles.header}>
+          <h3 className={styles.title}>ZipIt: {zipName}</h3>
+        </div>
+        
         {/* Recovery Banner */}
         <RecoveryBanner>
           {({ sessionIds, onRecover }) => (

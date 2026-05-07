@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext } from 'react';
 import { useZipIt, type UseZipItResult } from '../hooks/useZipIt';
 import type { ZipitConfig } from '@khatiwadaprashant/zipit-core';
 

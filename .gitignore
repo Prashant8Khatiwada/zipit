@@ -40,3 +40,6 @@ yarn-error.log*
 .eslintcache
 .stylelintcache
 .prettiercache
+
+*storybook.log
+storybook-static

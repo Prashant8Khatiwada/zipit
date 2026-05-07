@@ -38,6 +38,7 @@ export type {
   FileProgress,
   FilePhase,
   GlobalProgress,
+  SessionState,
   ProgressHandler,
   ErrorHandler,
   DownloadWorkerInbound,

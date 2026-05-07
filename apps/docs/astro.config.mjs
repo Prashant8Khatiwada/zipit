@@ -18,11 +18,11 @@ export default defineConfig({
         },
         {
           label: 'Core API',
-          autogenerate: { directory: 'core-api' },
+          items: [{ autogenerate: { directory: 'core-api' } }],
         },
         {
           label: 'React API',
-          autogenerate: { directory: 'react-api' },
+          items: [{ autogenerate: { directory: 'react-api' } }],
         },
         {
           label: 'Guides',

@@ -7,6 +7,7 @@ import { StartButton } from './StartButton';
 import { PauseResumeButton } from './PauseResumeButton';
 import { RecoveryBanner } from './RecoveryBanner';
 import type { ZipitConfig } from '@khatiwadaprashant/zipit-core';
+import type { UseZipItResult } from '../hooks/useZipIt';
 import styles from './ZipItUI.module.css';
 
 export interface ZipItUIProps {

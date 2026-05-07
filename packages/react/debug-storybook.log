@@ -1,0 +1,203 @@
+[20:52:51.208] [INFO] Initializing Storybook
+[20:52:51.652] [DEBUG] Getting package.json info for /home/slayer/myProjects/zipit/packages/react/package.json...
+[20:52:51.653] [DEBUG] Getting CLI versions from NPM for storybook...
+[20:52:51.653] [DEBUG] Executing command: yarn info storybook version --json
+[20:52:57.655] [INFO] Adding Storybook version 10.3.6 to your project
+[20:52:57.657] [INFO] Installing Storybook for user specified project type: react
+[20:52:57.663] [INFO] Framework detected: react-vite
+[20:52:57.665] [DEBUG] Getting installed version for vitest...
+[20:52:57.667] [DEBUG] Executing command: yarn list --pattern "vitest" --json --recursive vitest
+[20:52:58.191] [DEBUG] Error finding installations for vitest: ExecaError: Command failed with exit code 1: yarn list --pattern '"vitest"' --json --recursive vitest
+
+{"type":"error","data":"No lockfile in this directory. Run `yarn install` to generate one."}
+
+{"type":"info","data":"Visit \u001b[1mhttps://yarnpkg.com/en/docs/cli/list\u001b[22m for documentation about this command."}
+[20:52:58.191] [DEBUG] No installations found for vitest
+[20:52:58.191] [DEBUG] Getting installed version for msw...
+[20:52:58.191] [DEBUG] Executing command: yarn list --pattern "msw" --json --recursive msw
+[20:52:58.725] [DEBUG] Error finding installations for msw: ExecaError: Command failed with exit code 1: yarn list --pattern '"msw"' --json --recursive msw
+
+{"type":"error","data":"No lockfile in this directory. Run `yarn install` to generate one."}
+
+{"type":"info","data":"Visit \u001b[1mhttps://yarnpkg.com/en/docs/cli/list\u001b[22m for documentation about this command."}
+[20:52:58.725] [DEBUG] No installations found for msw
+[20:52:58.772] [INFO] base-generator-task-start: Generating Storybook configuration
+[20:52:58.773] [DEBUG] Using cached package.json for /home/slayer/myProjects/zipit/packages/react/package.json...
+[20:52:58.773] [DEBUG] Using cached package.json for /home/slayer/myProjects/zipit/packages/react/package.json...
+[20:52:58.773] [DEBUG] Using cached package.json for /home/slayer/myProjects/zipit/package.json...
+[20:52:58.773] [DEBUG] Using cached package.json for /home/slayer/myProjects/zipit/packages/react/package.json...
+[20:52:58.775] [INFO] base-generator-task: - Configuring ESLint plugin
+[20:52:58.776] [DEBUG] Detected flat config at /home/slayer/myProjects/zipit/eslint.config.js
+[20:52:58.831] [DEBUG] Using cached version for storybook...
+[20:52:58.831] [DEBUG] Getting CLI versions from NPM for @storybook/react-vite...
+[20:52:58.831] [DEBUG] Executing command: yarn info @storybook/react-vite version --json
+[20:52:58.841] [DEBUG] Getting CLI versions from NPM for @chromatic-com/storybook...
+[20:52:58.841] [DEBUG] Executing command: yarn info @chromatic-com/storybook version --json
+[20:52:58.852] [DEBUG] Getting CLI versions from NPM for @storybook/addon-vitest...
+[20:52:58.852] [DEBUG] Executing command: yarn info @storybook/addon-vitest version --json
+[20:52:58.864] [DEBUG] Getting CLI versions from NPM for @storybook/addon-a11y...
+[20:52:58.864] [DEBUG] Executing command: yarn info @storybook/addon-a11y version --json
+[20:52:58.876] [DEBUG] Getting CLI versions from NPM for @storybook/addon-docs...
+[20:52:58.876] [DEBUG] Executing command: yarn info @storybook/addon-docs version --json
+[20:52:58.888] [DEBUG] Getting CLI versions from NPM for @storybook/addon-onboarding...
+[20:52:58.888] [DEBUG] Executing command: yarn info @storybook/addon-onboarding version --json
+[20:52:58.901] [DEBUG] Getting CLI versions from NPM for eslint-plugin-storybook...
+[20:52:58.901] [DEBUG] Executing command: yarn info eslint-plugin-storybook version --json
+[20:53:15.925] [INFO] base-generator-task: - Configuring main.ts
+[20:53:15.929] [INFO] base-generator-task: - Configuring preview.ts
+[20:53:15.932] [INFO] base-generator-task: - Adding Storybook command to package.json
+[20:53:15.933] [DEBUG] Getting package.json info for /home/slayer/myProjects/zipit/packages/react/package.json...
+[20:53:15.933] [DEBUG] Using cached package.json for /home/slayer/myProjects/zipit/packages/react/package.json...
+[20:53:15.934] [DEBUG] Using cached package.json for /home/slayer/myProjects/zipit/packages/react/package.json...
+[20:53:15.936] [INFO] base-generator-task: - Copying framework templates
+[20:53:15.972] [DEBUG] Executing command: yarn config get registry
+[20:53:18.254] [INFO] base-generator-task-success: Storybook configuration generated
+[20:53:18.256] [DEBUG] Using cached package.json for /home/slayer/myProjects/zipit/packages/react/package.json...
+[20:53:18.256] [DEBUG] Using cached package.json for /home/slayer/myProjects/zipit/package.json...
+[20:53:18.256] [DEBUG] Using cached installed version for vitest...
+[20:53:18.258] [DEBUG] Getting installed version for @vitest/coverage-v8...
+[20:53:18.258] [DEBUG] Executing command: yarn list --pattern "@vitest/coverage-v8" --json --recursive @vitest/coverage-v8
+[20:53:18.824] [DEBUG] Error finding installations for @vitest/coverage-v8: ExecaError: Command failed with exit code 1: yarn list --pattern '"@vitest/coverage-v8"' --json --recursive '@vitest/coverage-v8'
+
+{"type":"error","data":"No lockfile in this directory. Run `yarn install` to generate one."}
+
+{"type":"info","data":"Visit \u001b[1mhttps://yarnpkg.com/en/docs/cli/list\u001b[22m for documentation about this command."}
+[20:53:18.824] [DEBUG] No installations found for @vitest/coverage-v8
+[20:53:18.825] [DEBUG] Getting installed version for @vitest/coverage-istanbul...
+[20:53:18.825] [DEBUG] Executing command: yarn list --pattern "@vitest/coverage-istanbul" --json --recursive @vitest/coverage-istanbul
+[20:53:19.314] [DEBUG] Error finding installations for @vitest/coverage-istanbul: ExecaError: Command failed with exit code 1: yarn list --pattern '"@vitest/coverage-istanbul"' --json --recursive '@vitest/coverage-istanbul'
+
+{"type":"error","data":"No lockfile in this directory. Run `yarn install` to generate one."}
+
+{"type":"info","data":"Visit \u001b[1mhttps://yarnpkg.com/en/docs/cli/list\u001b[22m for documentation about this command."}
+[20:53:19.314] [DEBUG] No installations found for @vitest/coverage-istanbul
+[20:53:19.315] [INFO] adding-dependencies-task-start: Adding dependencies to package.json
+[20:53:19.320] [INFO] adding-dependencies-task: Adding devDependencies:
+- storybook@^10.3.6
+- @storybook/react-vite@^10.3.6
+- @chromatic-com/storybook@^5.1.2
+- @storybook/addon-vitest@^10.3.6
+- @storybook/addon-a11y@^10.3.6
+- @storybook/addon-docs@^10.3.6
+- @storybook/addon-onboarding@^10.3.6
+- eslint-plugin-storybook@^10.3.6
+- playwright
+- @vitest/browser@^1.5.0
+- @vitest/coverage-v8@^1.5.0
+[20:53:19.320] [DEBUG] Using cached package.json for /home/slayer/myProjects/zipit/packages/react/package.json...
+[20:53:19.321] [DEBUG] Using cached version for storybook...
+[20:53:19.321] [DEBUG] Using cached version for @storybook/react-vite...
+[20:53:19.321] [DEBUG] Using cached version for @chromatic-com/storybook...
+[20:53:19.321] [DEBUG] Using cached version for @storybook/addon-vitest...
+[20:53:19.321] [DEBUG] Using cached version for @storybook/addon-a11y...
+[20:53:19.321] [DEBUG] Using cached version for @storybook/addon-docs...
+[20:53:19.321] [DEBUG] Using cached version for @storybook/addon-onboarding...
+[20:53:19.321] [DEBUG] Using cached version for eslint-plugin-storybook...
+[20:53:19.321] [DEBUG] Getting CLI versions from NPM for playwright...
+[20:53:19.321] [DEBUG] Executing command: yarn info playwright version --json
+[20:53:24.686] [DEBUG] Getting CLI versions from NPM for @vitest/browser...
+[20:53:24.686] [DEBUG] Executing command: yarn info @vitest/browser version --json
+[20:53:25.845] [DEBUG] Getting CLI versions from NPM for @vitest/coverage-v8...
+[20:53:25.845] [DEBUG] Executing command: yarn info @vitest/coverage-v8 version --json
+[20:53:27.141] [DEBUG] Using cached package.json for /home/slayer/myProjects/zipit/packages/react/package.json...
+[20:53:27.142] [INFO] adding-dependencies-task-success: Dependencies added to package.json
+[20:53:27.143] [INFO] Installing dependencies...
+[20:53:27.144] [INFO] install-dependencies-spinner-start: Installing dependencies...
+[20:53:27.148] [DEBUG] Executing command: yarn install --ignore-workspace-root-check
+[20:53:27.597] [INFO] Installing dependencies...: yarn install v1.22.22
+
+[20:53:27.597] [INFO] install-dependencies-spinner: Installing dependencies...: yarn install v1.22.22
+[20:53:27.660] [INFO] Installing dependencies...: info No lockfile found.
+
+[20:53:27.660] [INFO] install-dependencies-spinner: Installing dependencies...: info No lockfile found.
+[20:53:27.674] [INFO] Installing dependencies...: [1/4] Resolving packages...
+
+[20:53:27.674] [INFO] install-dependencies-spinner: Installing dependencies...: [1/4] Resolving packages.
+[20:53:30.965] [INFO] Installing dependencies...: info Visit https://yarnpkg.com/en/docs/cli/install for documentation about this command.
+
+[20:53:30.965] [INFO] install-dependencies-spinner: Installing dependencies...: info Visit https://yarnpk
+[20:53:31.005] [ERROR] Installation of dependencies failed! {"error":"ExecaError: Command failed with exit code 1: yarn install --ignore-workspace-root-check\n\nerror Couldn't find any versions for \"@khatiwadaprashant/zipit-core\" that matches \"workspace:*\"\n\nyarn install v1.22.22\ninfo No lockfile found.\n[1/4] Resolving packages...\ninfo Visit https://yarnpkg.com/en/docs/cli/install for documentation about this command.\n    at getFinalError (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/storybook/dist/_node-chunks/chunk-H4PWFMMO.js:13134:10)\n    at makeError (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/storybook/dist/_node-chunks/chunk-H4PWFMMO.js:14670:15)\n    at getAsyncResult (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/storybook/dist/_node-chunks/chunk-H4PWFMMO.js:17316:158)\n    at handlePromise (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/storybook/dist/_node-chunks/chunk-H4PWFMMO.js:17302:162)\n    at async Object.executeTaskWithSpinner (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/storybook/dist/_node-chunks/chunk-O2B7U3US.js:3683:11)\n    at async Yarn1Proxy.installDependencies (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/storybook/dist/_node-chunks/chunk-H4PWFMMO.js:11279:5)\n    at async DependencyInstallationCommand.execute (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/create-storybook/dist/_node-chunks/chunk-VQR5SPKR.js:2118:9)\n    at async doInitiate (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/create-storybook/dist/_node-chunks/chunk-VQR5SPKR.js:2894:38)\n    at async file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/create-storybook/dist/_node-chunks/chunk-VQR5SPKR.js:2928:20\n    at async withTelemetry (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/storybook/dist/_node-chunks/chunk-UYONHJJP.js:225:12)"}
+[20:53:31.006] [ERROR] install-dependencies-spinner-error: Installation of dependencies failed!
+[20:53:31.010] [INFO] configure-addons-task-start: Configuring addons...
+[20:53:31.011] [INFO] configure-addons-task: Configuring @chromatic-com/storybook...
+[20:53:31.013] [INFO] configure-addons-task: @chromatic-com/storybook configured
+
+[20:53:31.014] [INFO] configure-addons-task: Configuring @storybook/addon-vitest...
+[20:53:31.022] [DEBUG] Getting package.json info for /home/slayer/myProjects/zipit/packages/react/package.json...
+[20:53:31.022] [DEBUG] Using cached package.json for /home/slayer/myProjects/zipit/packages/react/package.json...
+[20:53:31.022] [DEBUG] Using cached package.json for /home/slayer/myProjects/zipit/package.json...
+[20:53:31.023] [DEBUG] Using cached installed version for vitest...
+[20:53:31.023] [DEBUG] Vitest version specifier: 1.5.0
+[20:53:31.297] [DEBUG] Using cached installed version for vitest...
+[20:53:31.297] [DEBUG] Using cached installed version for msw...
+[20:53:31.327] [INFO] Updating your Vitest workspace file...
+[20:53:31.328] [INFO] /home/slayer/myProjects/zipit/vitest.workspace.ts
+[20:53:31.348] [INFO] Setting up a11y addon for @storybook/addon-vitest
+[20:53:31.348] [INFO] Setting up a11y addon for @storybook/addon-vitest
+[20:53:31.349] [DEBUG] Executing command: npx storybook@10.3.6 automigrate addon-a11y-addon-test --loglevel silent --yes --skip-doctor --package-manager yarn1 --skip-install
+[20:55:14.990] [INFO] a11y addon setup successfully
+[20:55:14.990] [INFO] a11y addon setup successfully
+[20:55:14.991] [INFO] @storybook/addon-vitest setup completed successfully
+[20:55:14.991] [INFO] @storybook/addon-vitest is now configured and you're ready to run your tests!
+Here are a couple of tips to get you started:
+
+• You can run tests with "npx vitest --project=storybook"
+• Vitest IDE extension shows all stories as tests in your editor!
+
+Check the documentation for more information about its features and options at:
+https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
+[20:55:14.993] [INFO] configure-addons-task: @storybook/addon-vitest configured
+
+[20:55:14.994] [INFO] configure-addons-task: Configuring @storybook/addon-a11y...
+[20:55:14.994] [DEBUG] Executing command: npx storybook@10.3.6 automigrate addon-a11y-addon-test --loglevel silent --skip-doctor --yes --package-manager yarn1 --config-dir .storybook
+[20:55:36.575] [DEBUG] {
+  "shortMessage": "Command failed with exit code 1: npx 'storybook@10.3.6' automigrate addon-a11y-addon-test --loglevel silent --skip-doctor --yes --package-manager yarn1 --config-dir .storybook",
+  "command": "npx storybook@10.3.6 automigrate addon-a11y-addon-test --loglevel silent --skip-doctor --yes --package-manager yarn1 --config-dir .storybook",
+  "escapedCommand": "npx 'storybook@10.3.6' automigrate addon-a11y-addon-test --loglevel silent --skip-doctor --yes --package-manager yarn1 --config-dir .storybook",
+  "cwd": "/home/slayer/myProjects/zipit/packages/react",
+  "durationMs": 21580.786276,
+  "failed": true,
+  "timedOut": false,
+  "isCanceled": false,
+  "isGracefullyCanceled": false,
+  "isTerminated": false,
+  "isMaxBuffer": false,
+  "isForcefullyTerminated": false,
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "",
+  "stdio": [
+    null,
+    "",
+    ""
+  ],
+  "ipcOutput": [],
+  "pipedFrom": []
+}
+[20:55:36.576] [INFO] configure-addons-task: Configuring @storybook/addon-docs...
+[20:55:36.580] [INFO] configure-addons-task: @storybook/addon-docs configured
+
+[20:55:36.580] [INFO] configure-addons-task: Configuring @storybook/addon-onboarding...
+[20:55:36.584] [INFO] configure-addons-task: @storybook/addon-onboarding configured
+
+[20:55:36.584] [ERROR] configure-addons-task-error: Failed to configure addons
+[20:55:36.585] [INFO] ✅ @chromatic-com/storybook
+[20:55:36.588] [INFO] ✅ @storybook/addon-vitest
+[20:55:36.588] [INFO] ❌ @storybook/addon-a11y
+[20:55:36.589] [INFO] ✅ @storybook/addon-docs
+[20:55:36.589] [INFO] ✅ @storybook/addon-onboarding
+[20:55:36.591] [INFO] Installing Playwright browser binaries (press "c" to abort)
+[20:55:36.591] [INFO] playwright-installation-spinner-start: Installing Playwright browser binaries (press "c" to abort)
+[20:55:36.592] [DEBUG] Executing command: yarn exec playwright -- install chromium
+[20:55:37.026] [INFO] Installing Playwright browser binaries (press "c" to abort): yarn exec v1.22.22
+
+[20:55:37.026] [INFO] playwright-installation-spinner: Installing Playwright browser binaries (press "c" to abort): yarn exec v1.22.22
+[20:55:37.153] [INFO] Installing Playwright browser binaries (press "c" to abort): info Visit https://yarnpkg.com/en/docs/cli/exec for documentation about this command.
+
+[20:55:37.153] [INFO] playwright-installation-spinner: Installing Playwright browser binaries (press "c" to abort): info Visit https://yarnpk
+[20:55:37.187] [ERROR] An error occurred while installing Playwright browser binaries. Please run the following command later: yarn exec playwright -- install chromium {"error":"ExecaError: Command failed with exit code 1: yarn exec playwright -- install chromium\n\nerror Couldn't find the binary playwright\n\nyarn exec v1.22.22\ninfo Visit https://yarnpkg.com/en/docs/cli/exec for documentation about this command.\n    at getFinalError (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/storybook/dist/_node-chunks/chunk-H4PWFMMO.js:13134:10)\n    at makeError (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/storybook/dist/_node-chunks/chunk-H4PWFMMO.js:14670:15)\n    at getAsyncResult (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/storybook/dist/_node-chunks/chunk-H4PWFMMO.js:17316:158)\n    at handlePromise (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/storybook/dist/_node-chunks/chunk-H4PWFMMO.js:17302:162)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Object.executeTaskWithSpinner (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/storybook/dist/_node-chunks/chunk-O2B7U3US.js:3683:11)\n    at async AddonVitestService.installPlaywright (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/storybook/dist/_node-chunks/chunk-M6BD6GI2.js:5858:17)\n    at async AddonConfigurationCommand.execute (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/create-storybook/dist/_node-chunks/chunk-VQR5SPKR.js:2015:26)\n    at async doInitiate (file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/create-storybook/dist/_node-chunks/chunk-VQR5SPKR.js:2900:38)\n    at async file:///home/slayer/.npm/_npx/a5054e465ccef707/node_modules/create-storybook/dist/_node-chunks/chunk-VQR5SPKR.js:2928:20"}
+[20:55:37.187] [ERROR] playwright-installation-spinner-error: An error occurred while installing Playwright browser binaries. Please run the following command later: yarn exec playwright -- install chromium
+[20:55:39.283] [WARN] Storybook setup completed, but some non-blocking errors occurred. Please check the log file below for details.
+[20:55:39.288] [INFO] To run Storybook manually, run yarn storybook. CTRL+C to stop.
+[20:55:39.291] [INFO] Want to learn more about Storybook? https://storybook.js.org/
+Having trouble or want to chat? https://discord.gg/storybook/

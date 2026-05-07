@@ -26,3 +26,4 @@ export { GlobalProgress } from './GlobalProgress';
 export { StartButton } from './StartButton';
 export { PauseResumeButton } from './PauseResumeButton';
 export { RecoveryBanner } from './RecoveryBanner';
+export { ZipItUI } from './ZipItUI';

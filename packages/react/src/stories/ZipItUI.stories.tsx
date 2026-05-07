@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from '@storybook/react';
 import { ZipItUI } from '../components/ZipItUI';
 import { ZipItProvider } from '../components/ZipItProvider';
 import type { UseZipItResult } from '../hooks/useZipIt';

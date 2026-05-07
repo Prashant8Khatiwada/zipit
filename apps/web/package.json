@@ -13,14 +13,19 @@
     "@khatiwadaprashant/zipit-core": "workspace:*",
     "@khatiwadaprashant/zipit-react": "workspace:*",
     "fflate": "^0.8.2",
+    "framer-motion": "^12.38.0",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react-dom": "^18.0.0",
+    "react-router-dom": "^7.15.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.4",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "lucide-react": "^1.14.0",
+    "tailwindcss": "^4.2.4",
     "typescript": "^5.4.0",
-    "vite": "^5.0.0",
-    "@vitejs/plugin-react": "^4.2.0"
+    "vite": "^5.0.0"
   }
 }

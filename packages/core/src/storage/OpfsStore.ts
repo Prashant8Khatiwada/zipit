@@ -175,11 +175,11 @@ export default class OpfsStore {
    * @returns A store scoped to the session.
    */
   static async open(sessionId: string): Promise<OpfsStore> {
-    const store = new OpfsStore(sessionId);
     if (OpfsStore.canUseOpfs()) {
-      await navigator.storage.getDirectory();
+      return new OpfsStore(sessionId, new BrowserOpfsBackend());
     }
-    return store;
+    console.warn('[ZipIt] OPFS not supported, falling back to in-memory storage. Downloads will not survive page refresh.');
+    return new OpfsStore(sessionId, new InMemoryOpfsBackend());
   }
 
   /**

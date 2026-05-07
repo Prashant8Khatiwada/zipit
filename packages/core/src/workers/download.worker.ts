@@ -1,136 +1,158 @@
 /// <reference lib="webworker" />
-/**
- * ZipIt Download Worker
- */
 
 import type { DownloadWorkerInbound, DownloadWorkerOutbound } from '../types';
+import OpfsStore from '../storage/OpfsStore';
 
-// ─── Worker state ──────────────────────────────────────────────────────────────
-const activeTasks = new Map<string, { abortController: AbortController }>();
+const activeDownloads = new Map<string, AbortController>();
 
-self.onmessage = async (event: MessageEvent<DownloadWorkerInbound>) => {
-  const msg = event.data;
+const workerScope: DedicatedWorkerGlobalScope = self as DedicatedWorkerGlobalScope;
 
-  if (msg.type === 'START_CHUNK') {
-    const { id, url, startByte } = msg;
-    if (activeTasks.has(id)) return;
+workerScope.onmessage = (event: MessageEvent<DownloadWorkerInbound>) => {
+  const message = event.data;
 
-    const abortController = new AbortController();
-    activeTasks.set(id, { abortController });
-
-    try {
-      await processDownload(id, url, startByte, abortController.signal);
-    } catch (err: unknown) {
-      const e = err as Error;
-      if (e.name === 'AbortError' || abortController.signal.aborted) {
-        // Silently handle abort
-      } else {
-        self.postMessage({
-          type: 'CHUNK_ERROR',
-          id,
-          message: e.message || String(e),
-        } satisfies DownloadWorkerOutbound);
-      }
-    } finally {
-      activeTasks.delete(id);
-    }
-  } else if (msg.type === 'ABORT_DOWNLOAD') {
-    activeTasks.get(msg.id)?.abortController.abort();
+  if (message.type === 'StartChunk') {
+    void handleStartChunk(message);
+    return;
   }
+
+  const controller = activeDownloads.get(message.fileId);
+  controller?.abort();
+  post({
+    type: 'ChunkError',
+    fileId: message.fileId,
+    error: 'aborted',
+    retryable: false,
+  });
 };
 
-async function processDownload(
-  id: string,
-  url: string,
-  startByte: number,
-  signal: AbortSignal
+async function handleStartChunk(
+  message: Extract<DownloadWorkerInbound, { type: 'StartChunk' }>
 ): Promise<void> {
-  const rootDir = await navigator.storage.getDirectory();
-  const fileHandle = await rootDir.getFileHandle(id, { create: true });
-  // @ts-ignore — createSyncAccessHandle is available in workers
-  const accessHandle = await fileHandle.createSyncAccessHandle();
+  if (activeDownloads.has(message.fileId)) {
+    return;
+  }
+
+  const controller = new AbortController();
+  activeDownloads.set(message.fileId, controller);
 
   try {
-    const headers = new Headers();
-    if (startByte > 0) headers.set('Range', `bytes=${startByte}-`);
-
-    let response = await fetchWithFallback(url, headers, signal);
-
-    if (!response.body) throw new Error('Response body is null');
-
-    const reader = response.body.getReader();
-    let currentByte = startByte;
-    let lastReportTime = Date.now();
-    const REPORT_INTERVAL_MS = 300;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
-
-      // @ts-ignore — write options available in workers
-      accessHandle.write(value, { at: currentByte });
-      currentByte += value.byteLength;
-
-      const now = Date.now();
-      if (now - lastReportTime > REPORT_INTERVAL_MS) {
-        self.postMessage({
-          type: 'CHUNK_PROGRESS',
-          id,
-          loaded: currentByte,
-        } satisfies DownloadWorkerOutbound);
-        lastReportTime = now;
-      }
-    }
-
-    // @ts-ignore
-    if (typeof accessHandle.flush === 'function') accessHandle.flush();
-
-    // Final progress report
-    self.postMessage({
-      type: 'CHUNK_PROGRESS',
-      id,
-      loaded: currentByte,
-    } satisfies DownloadWorkerOutbound);
-
-    self.postMessage({ type: 'CHUNK_DONE', id, size: currentByte } satisfies DownloadWorkerOutbound);
+    await downloadChunk(message, controller.signal);
+  } catch (error) {
+    post({
+      type: 'ChunkError',
+      fileId: message.fileId,
+      error: error instanceof Error ? error.message : String(error),
+      retryable: isRetryableError(error),
+    });
   } finally {
-    accessHandle.close();
+    activeDownloads.delete(message.fileId);
   }
 }
 
-/** Smart failover: HEAD check on 4xx/5xx before giving up. */
-async function fetchWithFallback(
-  url: string,
-  headers: Headers,
+async function downloadChunk(
+  message: Extract<DownloadWorkerInbound, { type: 'StartChunk' }>,
   signal: AbortSignal
-): Promise<Response> {
-  let response: Response;
+): Promise<void> {
+  const headers = new Headers();
+  headers.set('Range', `bytes=${message.startByte}-${message.endByte ?? ''}`);
 
-  try {
-    response = await fetch(url, { headers, signal });
-
-    if (!response.ok && response.status !== 206) {
-      const head = await fetch(url, { method: 'HEAD', signal });
-      if (head.status === 200) {
-        response = await fetch(url, { headers, signal });
-        if (!response.ok)
-          throw new Error(`Download failed with HTTP ${response.status}`);
-      } else {
-        throw new Error(`Resource inaccessible (HTTP ${head.status})`);
-      }
-    }
-  } catch (e: unknown) {
-    const err = e as Error;
-    if (err.name === 'AbortError') throw err;
-    // Network error — attempt HEAD as diagnostic
-    const head = await fetch(url, { method: 'HEAD', signal }).catch(() => null);
-    if (head?.status === 200) {
-      response = await fetch(url, { headers, signal });
-    } else {
-      throw err;
-    }
+  const response = await fetch(message.url, { headers, signal });
+  if (!response.ok || (message.startByte > 0 && response.status !== 206 && response.status !== 200)) {
+    throw new HttpDownloadError(response.status);
+  }
+  if (!response.body) {
+    throw new Error('Response body is null');
   }
 
-  return response;
+  const opfs = await OpfsStore.open(message.sessionId);
+  const reader = response.body.getReader();
+  const totalChunkBytes = getTotalChunkBytes(message, response);
+  const rangeUnsupported = message.startByte > 0 && response.status === 200;
+  let skippedBytes = 0;
+  let writeOffset = message.startByte;
+  let bytesReceived = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (signal.aborted) {
+      throw new DOMException('aborted', 'AbortError');
+    }
+
+    const data = rangeUnsupported
+      ? skipAlreadyDownloadedBytes(value, message.startByte, skippedBytes)
+      : value;
+    skippedBytes += value.byteLength;
+    if (data.byteLength === 0) {
+      continue;
+    }
+
+    await opfs.writeChunk(message.fileId, writeOffset, data);
+    writeOffset += data.byteLength;
+    bytesReceived += data.byteLength;
+
+    post({
+      type: 'ChunkProgress',
+      fileId: message.fileId,
+      bytesReceived,
+      totalChunkBytes,
+    });
+  }
+
+  post({
+    type: 'ChunkDone',
+    fileId: message.fileId,
+    startByte: message.startByte,
+    endByte: message.endByte,
+  });
+}
+
+function skipAlreadyDownloadedBytes(
+  chunk: Uint8Array,
+  targetStartByte: number,
+  skippedBytes: number
+): Uint8Array {
+  const remainingToSkip = Math.max(0, targetStartByte - skippedBytes);
+  if (remainingToSkip >= chunk.byteLength) {
+    return new Uint8Array(0);
+  }
+  return chunk.slice(remainingToSkip);
+}
+
+function getTotalChunkBytes(
+  message: Extract<DownloadWorkerInbound, { type: 'StartChunk' }>,
+  response: Response
+): number | undefined {
+  if (message.endByte !== undefined) {
+    return message.endByte - message.startByte + 1;
+  }
+
+  const contentLength = response.headers.get('Content-Length');
+  if (!contentLength) {
+    return undefined;
+  }
+
+  const parsed = Number(contentLength);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function post(message: DownloadWorkerOutbound): void {
+  workerScope.postMessage(message);
+}
+
+class HttpDownloadError extends Error {
+  constructor(readonly status: number) {
+    super(`HTTP ${status}`);
+    this.name = 'HttpDownloadError';
+  }
+}
+
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return false;
+  }
+  if (error instanceof HttpDownloadError) {
+    return error.status === 429 || error.status >= 500;
+  }
+  return true;
 }

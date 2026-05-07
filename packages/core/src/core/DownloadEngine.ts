@@ -123,7 +123,7 @@ export class DownloadEngine {
   pause(): void {
     this._isPaused = true;
     for (const [id, worker] of this.activeWorkers) {
-      worker.postMessage({ type: 'ABORT_DOWNLOAD', id } satisfies DownloadWorkerInbound);
+      worker.postMessage({ type: 'AbortDownload', fileId: id } satisfies DownloadWorkerInbound);
     }
   }
 
@@ -135,7 +135,7 @@ export class DownloadEngine {
   cancel(): void {
     this._isPaused = true;
     for (const [id, worker] of this.activeWorkers) {
-      worker.postMessage({ type: 'ABORT_DOWNLOAD', id } satisfies DownloadWorkerInbound);
+      worker.postMessage({ type: 'AbortDownload', fileId: id } satisfies DownloadWorkerInbound);
       worker.terminate();
     }
     this.activeWorkers.clear();
@@ -229,6 +229,7 @@ export class DownloadEngine {
     );
     this.activeWorkers.set(descriptor.id, worker);
     this.updateFileProgress(descriptor.id, { phase: 'downloading' });
+    const startByte = this.progresses.get(descriptor.id)?.downloadedBytes ?? 0;
 
     worker.onmessage = async (event: MessageEvent<DownloadWorkerOutbound>) => {
       const msg = event.data;
@@ -236,18 +237,19 @@ export class DownloadEngine {
       if (!currentProgress) return;
 
       switch (msg.type) {
-        case 'CHUNK_PROGRESS':
-          this.trackSpeed(msg.loaded - currentProgress.downloadedBytes);
-          this.updateFileProgress(descriptor.id, { downloadedBytes: msg.loaded });
+        case 'ChunkProgress': {
+          const downloadedBytes = startByte + msg.bytesReceived;
+          this.trackSpeed(msg.bytesReceived);
+          this.updateFileProgress(descriptor.id, { downloadedBytes });
           break;
+        }
 
-        case 'CHUNK_DONE':
+        case 'ChunkDone':
           this.activeWorkers.delete(descriptor.id);
           worker.terminate();
-          this.updateFileProgress(descriptor.id, { 
-            phase: 'staging', 
-            downloadedBytes: msg.size,
-            totalBytes: msg.size 
+          this.updateFileProgress(descriptor.id, {
+            phase: 'staging',
+            downloadedBytes: this.progresses.get(descriptor.id)?.downloadedBytes ?? 0,
           });
           if (this.directoryHandle) {
             void this.transferToLocalDisk(this.descriptors.get(descriptor.id)!);
@@ -255,8 +257,8 @@ export class DownloadEngine {
           this.processQueue();
           break;
 
-        case 'CHUNK_ERROR': {
-          const fileError = new Error(msg.message);
+        case 'ChunkError': {
+          const fileError = new Error(msg.error);
           this.activeWorkers.delete(descriptor.id);
           worker.terminate();
           this.updateFileProgress(descriptor.id, { phase: 'error', error: fileError });
@@ -268,10 +270,11 @@ export class DownloadEngine {
     };
 
     worker.postMessage({
-      type: 'START_CHUNK',
-      id: descriptor.id,
+      type: 'StartChunk',
+      fileId: descriptor.id,
       url: descriptor.url,
-      startByte: this.progresses.get(descriptor.id)?.downloadedBytes ?? 0,
+      startByte,
+      sessionId: 'zipit-v1',
     } satisfies DownloadWorkerInbound);
   }
 

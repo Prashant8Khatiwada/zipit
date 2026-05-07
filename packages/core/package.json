@@ -24,9 +24,8 @@
       "require": "./dist/index.cjs"
     },
     "./worker": {
-      "types": "./dist/workers/download.worker.d.ts",
-      "import": "./dist/workers/download.worker.js",
-      "require": "./dist/workers/download.worker.cjs"
+      "import": "./dist/download.worker.js",
+      "require": "./dist/download.worker.cjs"
     }
   },
   "main": "./dist/index.cjs",
@@ -50,6 +49,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "fake-indexeddb": "^6.2.5",
     "typescript": "^5.4.0"
   },
   "peerDependencies": {

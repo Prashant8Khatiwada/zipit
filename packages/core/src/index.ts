@@ -8,6 +8,13 @@
 
 // ─── Factory function (primary API) ─────────────────────────────────────────
 export { createZipIt } from './core/factory';
+export { DownloadOrchestrator } from './DownloadOrchestrator';
+export { default as SessionStore } from './storage/SessionStore';
+export {
+  default as OpfsStore,
+  InMemoryOpfsBackend,
+  ZipitQuotaError,
+} from './storage/OpfsStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type {
@@ -20,6 +27,8 @@ export type {
   GlobalProgress,
   ProgressHandler,
   ErrorHandler,
+  DownloadWorkerInbound,
+  DownloadWorkerOutbound,
 } from './types';
 
 // ─── Browser feature detection ────────────────────────────────────────────────

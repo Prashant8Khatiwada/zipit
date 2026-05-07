@@ -72,13 +72,30 @@ export interface ZipitConfig {
 
 // Download Worker
 export type DownloadWorkerInbound =
-  | { type: 'START_CHUNK'; id: string; url: string; startByte: number; endByte?: number }
-  | { type: 'ABORT_DOWNLOAD'; id: string };
+  | {
+      type: 'StartChunk';
+      fileId: string;
+      url: string;
+      startByte: number;
+      endByte?: number;
+      sessionId: string;
+    }
+  | { type: 'AbortDownload'; fileId: string };
 
 export type DownloadWorkerOutbound =
-  | { type: 'CHUNK_PROGRESS'; id: string; loaded: number }
-  | { type: 'CHUNK_DONE'; id: string; size: number }
-  | { type: 'CHUNK_ERROR'; id: string; message: string };
+  | {
+      type: 'ChunkProgress';
+      fileId: string;
+      bytesReceived: number;
+      totalChunkBytes: number | undefined;
+    }
+  | {
+      type: 'ChunkDone';
+      fileId: string;
+      startByte: number;
+      endByte: number | undefined;
+    }
+  | { type: 'ChunkError'; fileId: string; error: string; retryable: boolean };
 
 // Zip Worker
 export type ZipWorkerInbound =

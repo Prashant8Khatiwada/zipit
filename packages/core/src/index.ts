@@ -15,6 +15,13 @@ export {
   InMemoryOpfsBackend,
   ZipitQuotaError,
 } from './storage/OpfsStore';
+export { SpeedCalculator } from './progress/SpeedCalculator';
+export { GlobalProgressTracker } from './progress/GlobalProgressTracker';
+export {
+  SessionRecovery,
+  recoverOrCreate,
+  type RecoveryPlan,
+} from './recovery/SessionRecovery';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type {

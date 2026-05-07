@@ -99,10 +99,30 @@ export type DownloadWorkerOutbound =
 
 // Zip Worker
 export type ZipWorkerInbound =
+  | { type: 'Init'; writerPort: MessagePort; compressionLevel: 0 | 1 | 6 | 9 }
+  | { type: 'AddFile'; fileId: string; path: string; size: number; opfsPort: MessagePort }
+  | { type: 'Finalize' }
   | { type: 'ADD_FILE'; id: string; path: string; size?: number }
   | { type: 'FINALIZE' };
 
 export type ZipWorkerOutbound =
+  | {
+      type: 'FileZipped';
+      fileId: string;
+    }
+  | {
+      type: 'ZipProgress';
+      compressedBytes: number;
+      totalBytes: number;
+    }
+  | {
+      type: 'ZipDone';
+      finalSizeBytes: number;
+    }
+  | {
+      type: 'ZipError';
+      error: string;
+    }
   | { type: 'ZIP_PROGRESS'; progress: number }
   | { type: 'ZIP_DONE'; blob: Blob }
   | { type: 'ZIP_ERROR'; message: string };

@@ -10,7 +10,7 @@ export default defineConfig([
     clean: true,
     treeshake: true,
     minify: false,
-    external: ['streamsaver', 'fflate'],
+    external: ['streamsaver'],
   },
   {
     entry: ['src/workers/download.worker.ts', 'src/workers/zip.worker.ts'],
@@ -21,6 +21,6 @@ export default defineConfig([
     clean: true,
     treeshake: true,
     minify: false,
-    external: ['streamsaver', 'fflate'],
+    external: ['streamsaver'],
   },
 ]);

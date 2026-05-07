@@ -9,6 +9,12 @@
 // ─── Factory function (primary API) ─────────────────────────────────────────
 export { createZipIt } from './core/factory';
 export { DownloadOrchestrator } from './DownloadOrchestrator';
+export { ZipPipeline } from './ZipPipeline';
+export {
+  FileSystemWriter,
+  BlobFileSystemWriter,
+  type IFileSystemWriter,
+} from './fs/FileSystemWriter';
 export { default as SessionStore } from './storage/SessionStore';
 export {
   default as OpfsStore,

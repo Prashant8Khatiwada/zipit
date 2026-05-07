@@ -33,8 +33,7 @@ export function createZipIt(config: Partial<ZipitConfig> = {}): ZipItInstance {
   const store = new StateStore('zipit_v1');
   const engine = new DownloadEngine(resolved, store);
   const zipEngine = new ZipEngine({
-    maxInFlight: 10,
-    streamBufferBytes: 5 * 1024 * 1024,
+    compressionLevel: resolved.compressionLevel,
   });
 
   // ─── Helper ───────────────────────────────────────────────────────────────

@@ -6,7 +6,8 @@
  * @internal
  */
 
-import { StreamCompressor } from './StreamCompressor';
+import OpfsStore from '../storage/OpfsStore';
+import { ZipPipeline } from '../ZipPipeline';
 
 export interface ZipRequest {
   url: string;
@@ -16,42 +17,7 @@ export interface ZipRequest {
 }
 
 export interface ZipEngineOptions {
-  maxInFlight?: number;
-  streamBufferBytes?: number;
-}
-
-/**
- * Cross-browser download trigger for a ReadableStream.
- */
-async function triggerStreamDownload(
-  fileName: string,
-  stream: ReadableStream<Uint8Array>
-): Promise<void> {
-  // Prefer native File System Access API save dialog
-  if ('showSaveFilePicker' in window) {
-    try {
-      const handle = await (window as Window & { showSaveFilePicker: (opts: unknown) => Promise<FileSystemFileHandle> })
-        .showSaveFilePicker({
-          suggestedName: fileName,
-          types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }],
-        });
-      const writable = await handle.createWritable();
-      await stream.pipeTo(writable);
-      return;
-    } catch (err: unknown) {
-      const e = err as Error;
-      if (e.name !== 'AbortError') {
-        console.warn('[ZipIt] showSaveFilePicker failed, falling back to streamsaver:', e.message);
-      } else {
-        throw e; // User cancelled
-      }
-    }
-  }
-
-  // Fallback: streamsaver.js (Service Worker based)
-  const streamSaver = await import('streamsaver');
-  const fileStream = streamSaver.default.createWriteStream(fileName);
-  await stream.pipeTo(fileStream);
+  compressionLevel?: 0 | 1 | 6 | 9;
 }
 
 export class ZipEngine {
@@ -60,8 +26,7 @@ export class ZipEngine {
 
   constructor(options: ZipEngineOptions = {}) {
     this.options = {
-      maxInFlight: options.maxInFlight ?? 10,
-      streamBufferBytes: options.streamBufferBytes ?? 5 * 1024 * 1024,
+      compressionLevel: options.compressionLevel ?? 6,
     };
   }
 
@@ -86,30 +51,24 @@ export class ZipEngine {
 
     this._isBusy = true;
 
-    const compressor = new StreamCompressor({
-      maxInFlight: this.options.maxInFlight,
-      streamBufferBytes: this.options.streamBufferBytes,
-    });
-    const zipStream = compressor.getStream();
-
-    // Trigger the OS download FIRST so the browser shows progress immediately
-    const downloadPromise = triggerStreamDownload(archiveName, zipStream).catch(
-      (err: unknown) => {
-        console.error('[ZipIt] Stream download failed:', err);
-      }
-    );
-
     try {
+      const opfsStore = await OpfsStore.open('zipit-v1');
+      const pipeline = new ZipPipeline({ compressionLevel: this.options.compressionLevel }, opfsStore);
+      await pipeline.prepare(archiveName);
       for (const req of requests) {
         if (req.opfsId) {
-          await compressor.addFile(req.opfsId, req.fileName);
+          await pipeline.addFile({
+            id: req.opfsId,
+            path: req.fileName,
+            url: req.url,
+            sizeBytes: undefined,
+          });
         } else {
           console.warn(`[ZipIt] File ${req.fileName} has no opfsId. Zipping from network is not supported in this model.`);
         }
       }
 
-      compressor.finalize();
-      await downloadPromise;
+      await pipeline.finalize();
     } finally {
       this._isBusy = false;
     }

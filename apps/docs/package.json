@@ -1,0 +1,9 @@
+{
+  "name": "@khatiwadaprashant/zipit-docs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Docs dev server placeholder'",
+    "build": "echo 'Docs build placeholder'"
+  }
+}

@@ -11,16 +11,15 @@ export { createZipIt } from './core/factory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type {
-  ZipItOptions,
+  ZipitConfig,
   ZipItInstance,
   AddFileOptions,
-  FileEntry,
-  FileStatus,
-  ProgressStats,
+  FileDescriptor,
+  FileProgress,
+  FilePhase,
+  GlobalProgress,
   ProgressHandler,
-  CompleteHandler,
   ErrorHandler,
-  FileProgressHandler,
 } from './types';
 
 // ─── Browser feature detection ────────────────────────────────────────────────

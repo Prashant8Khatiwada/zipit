@@ -1,254 +1,127 @@
 /**
- * Full TypeScript type surface for @khatiwadaprashant/zipit-core
- * All public-facing types are exported from this module.
+ * Shared TypeScript types and interfaces for ZipIt.
  */
 
-// ─── File lifecycle ────────────────────────────────────────────────────────────
+/** Describes a file to be downloaded */
+export interface FileDescriptor {
+  /** Stable UUID, deterministic from URL+path */
+  id: string;
+  url: string;
+  /** Zip-relative path, e.g. "folder/file.txt" */
+  path: string;
+  /** Total size in bytes (undefined if unknown) */
+  sizeBytes?: number;
+  mimeType?: string;
+  /** Arbitrary user-supplied metadata */
+  metadata?: Record<string, unknown>;
+}
 
 /** The complete lifecycle of a file in the ZipIt queue. */
-export type FileStatus =
-  | 'idle'       // Added but not started
-  | 'queued'     // In queue, waiting for a free worker slot
-  | 'downloading' // Actively being downloaded into OPFS
-  | 'staged'     // Fully in OPFS, awaiting transfer to local disk
-  | 'transferring' // Streaming from OPFS → local FS
-  | 'done'       // Successfully transferred / zipped
-  | 'paused'     // Mid-download, paused by user
-  | 'error';     // Failed (errorMessage populated)
+export type FilePhase =
+  | 'pending'
+  | 'downloading'
+  | 'staging'
+  | 'zipping'
+  | 'done'
+  | 'error';
 
-/** A single file entry tracked by ZipIt. */
-export interface FileEntry {
-  /** Unique identifier (derived from URL by default). */
-  id: string;
-  /** The remote URL to download from. */
-  url: string;
-  /** The name the file will be saved as. */
-  filename: string;
-  /**
-   * Optional relative folder path (e.g. "photos/2024/trip").
-   * Used to recreate directory structure when saving to local folder.
-   */
-  folder?: string;
-  /** Total size in bytes (0 if unknown until HEAD response). */
-  totalBytes: number;
-  /** Bytes downloaded so far. */
+/** Current progress state for an individual file. */
+export interface FileProgress {
+  fileId: string;
+  phase: FilePhase;
   downloadedBytes: number;
-  /** Current lifecycle state. */
-  status: FileStatus;
-  /** ISO timestamp of when this entry was added. */
-  addedAt: number;
-  /** Error message if status === 'error'. */
-  errorMessage?: string;
-  /** Arbitrary user-supplied metadata. */
-  metadata?: Record<string, unknown>;
-}
-
-// ─── Progress ─────────────────────────────────────────────────────────────────
-
-/** Summary stats emitted with every progress event. */
-export interface ProgressStats {
-  /** Total files across all statuses. */
-  totalFiles: number;
-  /** Files with status 'done'. */
-  completedFiles: number;
-  /** Files with status 'staged'. */
-  stagedFiles: number;
-  /** Files with status 'downloading'. */
-  activeFiles: number;
-  /** Total bytes across all files. */
-  totalBytes: number;
-  /** Bytes successfully downloaded (including staged). */
-  downloadedBytes: number;
-  /** 0–1, derived from downloadedBytes / totalBytes. */
-  overallProgress: number;
-  /** Estimated bytes per second (rolling 3-second window). */
-  speedBytesPerSecond: number;
-  /** Estimated seconds remaining. null if unknown. */
-  etaSeconds: number | null;
-  /** Map of fileId → FileEntry for all tracked files. */
-  files: Map<string, FileEntry>;
-}
-
-// ─── Event handlers ────────────────────────────────────────────────────────────
-
-/** Called periodically (throttled to rAF) as download progresses. */
-export type ProgressHandler = (stats: ProgressStats) => void;
-
-/** Called once all files reach 'done' status. */
-export type CompleteHandler = (stats: ProgressStats) => void;
-
-/** Called when any file encounters an unrecoverable error. */
-export type ErrorHandler = (error: Error, file: FileEntry) => void;
-
-/** Called when an individual file's status or progress changes. */
-export type FileProgressHandler = (file: FileEntry) => void;
-
-// ─── Options ──────────────────────────────────────────────────────────────────
-
-/** Options passed to `createZipIt()`. */
-export interface ZipItOptions {
-  /**
-   * Number of files to download simultaneously.
-   * @default 3
-   */
-  concurrency?: number;
-  /**
-   * How many in-flight zip chunks are kept in the worker mailbox.
-   * Higher = faster compression, higher RAM use.
-   * @default 10
-   */
-  zipBackpressureLimit?: number;
-  /**
-   * Maximum bytes buffered in the ReadableStream before backpressure kicks in.
-   * @default 5 * 1024 * 1024  (5 MB)
-   */
-  streamBufferBytes?: number;
-  /**
-   * IndexedDB database name for persisting download state.
-   * Change this if you run multiple ZipIt instances on the same origin.
-   * @default 'zipit_v1'
-   */
-  dbName?: string;
-  /**
-   * Called on every progress tick.
-   */
-  onProgress?: ProgressHandler;
-  /**
-   * Called when all files have completed.
-   */
-  onComplete?: CompleteHandler;
-  /**
-   * Called on any file error.
-   */
-  onError?: ErrorHandler;
-  /**
-   * Called when an individual file's state changes.
-   */
-  onFileProgress?: FileProgressHandler;
-}
-
-/** Options for adding an individual file to the queue. */
-export interface AddFileOptions {
-  /**
-   * Override the filename derived from the URL.
-   * If omitted, extracted from the URL pathname or Content-Disposition.
-   */
-  filename?: string;
-  /**
-   * Relative folder path used to preserve directory structure.
-   * e.g. "photos/2024" → saves to <root>/photos/2024/<filename>
-   */
-  folder?: string;
-  /**
-   * Known size in bytes. Providing this improves quota checks and progress accuracy.
-   * If omitted, the worker will detect it from Content-Length.
-   */
   totalBytes?: number;
-  /** Any user data to attach; survives hydration across page reloads. */
+  error?: string;
+}
+
+/** Describes the state of a download session for persistence. */
+export interface SessionState {
+  sessionId: string;
+  files: FileDescriptor[];
+  status: 'idle' | 'running' | 'paused' | 'done' | 'error';
+  /** Epoch ms */
+  createdAt: number;
+}
+
+/** Aggregated progress stats for the entire session. */
+export interface GlobalProgress {
+  totalFiles: number;
+  completedFiles: number;
+  totalBytes?: number;
+  downloadedBytes: number;
+  speedBytesPerSecond: number;
+  etaSeconds?: number;
+  phase: 'downloading' | 'zipping' | 'done';
+}
+
+/** Configuration options for the ZipIt engine. */
+export interface ZipitConfig {
+  /** @default 3 */
+  concurrency: number;
+  /** @default 4MB */
+  chunkSizeBytes: number;
+  /** fflate compression levels (0=none, 1=fast, 6=balanced, 9=best) */
+  compressionLevel: 0 | 1 | 6 | 9;
+  /** @default 3 */
+  retryAttempts: number;
+  /** @default 1000 */
+  retryDelayMs: number;
+}
+
+// ─── Worker message types ──────────────────────────────────────────────────
+
+// Download Worker
+export type DownloadWorkerInbound =
+  | { type: 'START_CHUNK'; id: string; url: string; startByte: number; endByte?: number }
+  | { type: 'ABORT_DOWNLOAD'; id: string };
+
+export type DownloadWorkerOutbound =
+  | { type: 'CHUNK_PROGRESS'; id: string; loaded: number }
+  | { type: 'CHUNK_DONE'; id: string; size: number }
+  | { type: 'CHUNK_ERROR'; id: string; message: string };
+
+// Zip Worker
+export type ZipWorkerInbound =
+  | { type: 'ADD_FILE'; id: string; path: string; size?: number }
+  | { type: 'FINALIZE' };
+
+export type ZipWorkerOutbound =
+  | { type: 'ZIP_PROGRESS'; progress: number }
+  | { type: 'ZIP_DONE'; blob: Blob }
+  | { type: 'ZIP_ERROR'; message: string };
+
+// ─── Public API Surface ──────────────────────────────────────────────────
+
+/** Called periodically as download progresses. */
+export type ProgressHandler = (stats: GlobalProgress) => void;
+
+/** Called when any file encounters an error. */
+export type ErrorHandler = (error: Error, fileId: string) => void;
+
+/** Options for adding an individual file. */
+export interface AddFileOptions {
+  filename?: string;
+  folder?: string;
+  sizeBytes?: number;
   metadata?: Record<string, unknown>;
 }
 
-// ─── Instance ─────────────────────────────────────────────────────────────────
-
-/** The object returned by `createZipIt()`. */
+/** The main ZipIt instance interface. */
 export interface ZipItInstance {
-  /**
-   * Add a file URL to the download queue.
-   * Safe to call before `start()`.
-   * @example ds.add('https://example.com/photo.jpg', { folder: 'photos/2024' })
-   */
-  add: (url: string, options?: AddFileOptions) => FileEntry;
-
-  /**
-   * Add multiple URLs at once.
-   * @example ds.addAll(['https://example.com/a.jpg', 'https://example.com/b.jpg'])
-   */
-  addAll: (urls: string[], options?: AddFileOptions) => FileEntry[];
-
-  /**
-   * Begin downloading all queued files.
-   * If `saveToFolder` is true, prompts for a directory via File System Access API.
-   */
+  add: (url: string, options?: AddFileOptions) => FileDescriptor;
+  addAll: (urls: string[], options?: AddFileOptions) => FileDescriptor[];
   start: (options?: { saveToFolder?: boolean }) => Promise<void>;
-
-  /** Pause all active downloads (byte-level, resumable). */
   pause: () => void;
-
-  /** Resume paused downloads. */
   resume: () => void;
-
-  /**
-   * Cancel all downloads and clear the queue.
-   * Does NOT delete already-staged OPFS files — call `reset()` for that.
-   */
   cancel: () => void;
-
-  /**
-   * Download all queued files as a single streaming ZIP archive.
-   * Does NOT require `start()` to have been called first.
-   *
-   * @param outputFilename - The name of the resulting .zip file
-   * @example ds.zip('my-photos.zip')
-   */
   zip: (outputFilename?: string) => Promise<void>;
-
-  /**
-   * Prompt the user to pick a local folder and save all staged files there,
-   * preserving relative folder structure.
-   * Requires File System Access API (Chrome/Edge only).
-   */
   saveToFolder: () => Promise<void>;
-
-  /**
-   * Subscribe to a ZipIt event.
-   * @example ds.on('progress', (stats) => console.log(stats.overallProgress))
-   */
-  on: {
-    (event: 'progress', handler: ProgressHandler): () => void;
-    (event: 'complete', handler: CompleteHandler): () => void;
-    (event: 'error', handler: ErrorHandler): () => void;
-    (event: 'file-progress', handler: FileProgressHandler): () => void;
-  };
-
-  /**
-   * Remove an event handler previously registered with `on()`.
-   */
-  off: {
-    (event: 'progress', handler: ProgressHandler): void;
-    (event: 'complete', handler: CompleteHandler): void;
-    (event: 'error', handler: ErrorHandler): void;
-    (event: 'file-progress', handler: FileProgressHandler): void;
-  };
-
-  /**
-   * Get a snapshot of all currently tracked files.
-   */
-  getFiles: () => Map<string, FileEntry>;
-
-  /**
-   * Get the latest progress stats.
-   */
-  getProgress: () => ProgressStats;
-
-  /**
-   * Whether downloads are currently paused.
-   */
+  on: (event: string, handler: any) => () => void;
+  off: (event: string, handler: any) => void;
+  getFiles: () => FileDescriptor[];
+  getProgress: () => GlobalProgress;
   isPaused: () => boolean;
-
-  /**
-   * Whether there are active downloads or staged files.
-   */
   isBusy: () => boolean;
-
-  /**
-   * Clear all state (IndexedDB + OPFS cache). Useful for a complete reset.
-   */
   reset: () => Promise<void>;
-
-  /**
-   * Resume a previous session from IndexedDB.
-   * Call on page load to detect and offer to resume interrupted downloads.
-   * @returns Files that were interrupted and can be resumed.
-   */
-  hydrate: () => Promise<FileEntry[]>;
+  hydrate: () => Promise<FileDescriptor[]>;
 }

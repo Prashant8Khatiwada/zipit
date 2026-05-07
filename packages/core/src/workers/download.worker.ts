@@ -1,74 +1,17 @@
 /// <reference lib="webworker" />
 /**
  * ZipIt Download Worker
- *
- * Runs in a dedicated Web Worker thread. Fetches a file in streaming chunks
- * and writes them synchronously into the Origin Private File System (OPFS)
- * using FileSystemSyncAccessHandle for maximum throughput.
- *
- * Supports:
- * - Range requests (byte-level resumability)
- * - HEAD-based smart failover
- * - Pause via AbortController
- * - Content-Length metadata detection
  */
 
-export interface WorkerStart {
-  type: 'start';
-  id: string;
-  url: string;
-  startByte: number;
-}
-
-export interface WorkerPause {
-  type: 'pause';
-  id: string;
-}
-
-export type WorkerInMessage = WorkerStart | WorkerPause;
-
-export interface WorkerProgress {
-  type: 'progress';
-  id: string;
-  downloadedBytes: number;
-}
-
-export interface WorkerCompleted {
-  type: 'completed';
-  id: string;
-}
-
-export interface WorkerPaused {
-  type: 'paused';
-  id: string;
-}
-
-export interface WorkerError {
-  type: 'error';
-  id: string;
-  error: string;
-}
-
-export interface WorkerMetadataUpdate {
-  type: 'metadata_update';
-  id: string;
-  totalBytes: number;
-}
-
-export type WorkerOutMessage =
-  | WorkerProgress
-  | WorkerCompleted
-  | WorkerPaused
-  | WorkerError
-  | WorkerMetadataUpdate;
+import type { DownloadWorkerInbound, DownloadWorkerOutbound } from '../types';
 
 // ─── Worker state ──────────────────────────────────────────────────────────────
 const activeTasks = new Map<string, { abortController: AbortController }>();
 
-self.onmessage = async (event: MessageEvent<WorkerInMessage>) => {
+self.onmessage = async (event: MessageEvent<DownloadWorkerInbound>) => {
   const msg = event.data;
 
-  if (msg.type === 'start') {
+  if (msg.type === 'START_CHUNK') {
     const { id, url, startByte } = msg;
     if (activeTasks.has(id)) return;
 
@@ -80,18 +23,18 @@ self.onmessage = async (event: MessageEvent<WorkerInMessage>) => {
     } catch (err: unknown) {
       const e = err as Error;
       if (e.name === 'AbortError' || abortController.signal.aborted) {
-        self.postMessage({ type: 'paused', id } satisfies WorkerPaused);
+        // Silently handle abort
       } else {
         self.postMessage({
-          type: 'error',
+          type: 'CHUNK_ERROR',
           id,
-          error: e.message || String(e),
-        } satisfies WorkerError);
+          message: e.message || String(e),
+        } satisfies DownloadWorkerOutbound);
       }
     } finally {
       activeTasks.delete(id);
     }
-  } else if (msg.type === 'pause') {
+  } else if (msg.type === 'ABORT_DOWNLOAD') {
     activeTasks.get(msg.id)?.abortController.abort();
   }
 };
@@ -113,17 +56,6 @@ async function processDownload(
 
     let response = await fetchWithFallback(url, headers, signal);
 
-    // Report total size if known
-    const contentLengthHeader = response.headers.get('content-length');
-    if (contentLengthHeader) {
-      const totalBytes = parseInt(contentLengthHeader, 10) + (startByte || 0);
-      self.postMessage({
-        type: 'metadata_update',
-        id,
-        totalBytes,
-      } satisfies WorkerMetadataUpdate);
-    }
-
     if (!response.body) throw new Error('Response body is null');
 
     const reader = response.body.getReader();
@@ -143,10 +75,10 @@ async function processDownload(
       const now = Date.now();
       if (now - lastReportTime > REPORT_INTERVAL_MS) {
         self.postMessage({
-          type: 'progress',
+          type: 'CHUNK_PROGRESS',
           id,
-          downloadedBytes: currentByte,
-        } satisfies WorkerProgress);
+          loaded: currentByte,
+        } satisfies DownloadWorkerOutbound);
         lastReportTime = now;
       }
     }
@@ -156,12 +88,12 @@ async function processDownload(
 
     // Final progress report
     self.postMessage({
-      type: 'progress',
+      type: 'CHUNK_PROGRESS',
       id,
-      downloadedBytes: currentByte,
-    } satisfies WorkerProgress);
+      loaded: currentByte,
+    } satisfies DownloadWorkerOutbound);
 
-    self.postMessage({ type: 'completed', id } satisfies WorkerCompleted);
+    self.postMessage({ type: 'CHUNK_DONE', id, size: currentByte } satisfies DownloadWorkerOutbound);
   } finally {
     accessHandle.close();
   }

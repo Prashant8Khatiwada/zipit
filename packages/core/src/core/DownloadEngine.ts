@@ -8,28 +8,28 @@
  */
 
 import type {
-  FileEntry,
-  ZipItOptions,
-  ProgressStats,
+  FileDescriptor,
+  FileProgress,
+  GlobalProgress,
+  ZipitConfig,
   ProgressHandler,
-  CompleteHandler,
   ErrorHandler,
-  FileProgressHandler,
+  DownloadWorkerInbound,
+  DownloadWorkerOutbound,
 } from '../types';
 import { StateStore } from '../store/StateStore';
 import { rafThrottle } from '../utils/helpers';
-import type { WorkerInMessage, WorkerOutMessage } from '../workers/download.worker';
 
 type EventMap = {
   progress: ProgressHandler[];
-  complete: CompleteHandler[];
   error: ErrorHandler[];
-  'file-progress': FileProgressHandler[];
+  'file-progress': ((progress: FileProgress) => void)[];
 };
 
 export class DownloadEngine {
   private store: StateStore;
-  private files = new Map<string, FileEntry>();
+  private descriptors = new Map<string, FileDescriptor>();
+  private progresses = new Map<string, FileProgress>();
   private queue: string[] = [];
   private activeWorkers = new Map<string, Worker>();
   private activeTransfers = new Set<string>();
@@ -38,7 +38,6 @@ export class DownloadEngine {
   private _isPaused = false;
   private listeners: EventMap = {
     progress: [],
-    complete: [],
     error: [],
     'file-progress': [],
   };
@@ -48,7 +47,7 @@ export class DownloadEngine {
 
   private emitProgress: () => void;
 
-  constructor(options: Required<ZipItOptions>, store: StateStore) {
+  constructor(options: ZipitConfig, store: StateStore) {
     this.store = store;
     this.concurrency = options.concurrency;
 
@@ -57,8 +56,7 @@ export class DownloadEngine {
       const stats = this.buildStats();
       this.listeners.progress.forEach((h) => h(stats));
 
-      if (stats.completedFiles === stats.totalFiles && stats.totalFiles > 0) {
-        this.listeners.complete.forEach((h) => h(stats));
+      if (stats.completedFiles === stats.totalFiles && stats.totalFiles > 0 && stats.phase === 'done') {
         // Auto-cleanup
         this.store.clearAll().catch(console.error);
       }
@@ -80,12 +78,20 @@ export class DownloadEngine {
 
   // ─── File queue management ──────────────────────────────────────────────────
 
-  addFile(entry: FileEntry): void {
-    this.files.set(entry.id, entry);
-    if (!this.queue.includes(entry.id)) {
-      this.queue.push(entry.id);
+  addFile(descriptor: FileDescriptor): void {
+    this.descriptors.set(descriptor.id, descriptor);
+    if (!this.progresses.has(descriptor.id)) {
+      this.progresses.set(descriptor.id, {
+        fileId: descriptor.id,
+        phase: 'pending',
+        downloadedBytes: 0,
+        totalBytes: descriptor.sizeBytes,
+      });
     }
-    this.store.upsert(entry).catch(console.error);
+    if (!this.queue.includes(descriptor.id)) {
+      this.queue.push(descriptor.id);
+    }
+    this.store.upsert(descriptor).catch(console.error);
   }
 
   // ─── Download lifecycle ────────────────────────────────────────────────────
@@ -102,11 +108,11 @@ export class DownloadEngine {
       }
     }
 
-    // Update queued files to 'queued' status
+    // Update queued files to 'pending' phase if idle
     for (const id of this.queue) {
-      const entry = this.files.get(id);
-      if (entry && entry.status === 'idle') {
-        this.updateFile(id, { status: 'queued' });
+      const progress = this.progresses.get(id);
+      if (progress && progress.phase === 'pending') {
+        this.updateFileProgress(id, { phase: 'pending' });
       }
     }
 
@@ -117,7 +123,7 @@ export class DownloadEngine {
   pause(): void {
     this._isPaused = true;
     for (const [id, worker] of this.activeWorkers) {
-      worker.postMessage({ type: 'pause', id } satisfies WorkerInMessage);
+      worker.postMessage({ type: 'ABORT_DOWNLOAD', id } satisfies DownloadWorkerInbound);
     }
   }
 
@@ -129,7 +135,7 @@ export class DownloadEngine {
   cancel(): void {
     this._isPaused = true;
     for (const [id, worker] of this.activeWorkers) {
-      worker.postMessage({ type: 'pause', id } satisfies WorkerInMessage);
+      worker.postMessage({ type: 'ABORT_DOWNLOAD', id } satisfies DownloadWorkerInbound);
       worker.terminate();
     }
     this.activeWorkers.clear();
@@ -147,37 +153,31 @@ export class DownloadEngine {
     return this.activeWorkers.size > 0 || this.queue.length > 0 || this.activeTransfers.size > 0;
   }
 
-  getFiles(): Map<string, FileEntry> {
-    return new Map(this.files);
+  getFiles(): FileDescriptor[] {
+    return Array.from(this.descriptors.values());
   }
 
-  getProgress(): ProgressStats {
+  getProgress(): GlobalProgress {
     return this.buildStats();
   }
 
-  async hydrate(): Promise<FileEntry[]> {
-    const stored = await this.store.getAll();
-    const resumable: FileEntry[] = [];
+  async hydrate(): Promise<FileDescriptor[]> {
+    const stored = await this.store.getAll() as FileDescriptor[];
+    const resumable: FileDescriptor[] = [];
 
-    for (const entry of stored) {
-      // Re-hydrate in-memory map
-      this.files.set(entry.id, entry);
-
-      if (entry.status === 'downloading' || entry.status === 'queued' || entry.status === 'paused') {
-        // Reset to queued so they can be resumed
-        const updated = { ...entry, status: 'queued' as const };
-        this.files.set(entry.id, updated);
-        this.queue.push(entry.id);
-        resumable.push(updated);
-      } else if (entry.status === 'staged') {
-        // Was staged in OPFS, needs transfer
-        if (this.directoryHandle) {
-          void this.transferToLocalDisk(entry);
-        } else {
-          this.queue.push(entry.id);
-          resumable.push(entry);
-        }
-      }
+    for (const descriptor of stored) {
+      this.descriptors.set(descriptor.id, descriptor);
+      
+      // For hydration, we'll assume they need to be re-downloaded or transferred
+      // In a real app we might store progress too, but following the "static vs dynamic" split
+      this.progresses.set(descriptor.id, {
+        fileId: descriptor.id,
+        phase: 'pending',
+        downloadedBytes: 0,
+        totalBytes: descriptor.sizeBytes,
+      });
+      this.queue.push(descriptor.id);
+      resumable.push(descriptor);
     }
 
     this.emitProgress();
@@ -186,7 +186,8 @@ export class DownloadEngine {
 
   async reset(): Promise<void> {
     this.cancel();
-    this.files.clear();
+    this.descriptors.clear();
+    this.progresses.clear();
     this.queue = [];
     await this.store.clearAll();
     // Clear OPFS cache
@@ -207,103 +208,103 @@ export class DownloadEngine {
 
     while (this.activeWorkers.size < this.concurrency && this.queue.length > 0) {
       const nextId = this.queue.shift()!;
-      const entry = this.files.get(nextId);
-      if (!entry) continue;
+      const descriptor = this.descriptors.get(nextId);
+      const progress = this.progresses.get(nextId);
+      if (!descriptor || !progress) continue;
 
-      if (entry.status === 'staged' && this.directoryHandle) {
-        void this.transferToLocalDisk(entry);
-      } else if (entry.status !== 'staged') {
-        this.startWorker(entry);
+      if (progress.phase === 'staging' && this.directoryHandle) {
+        void this.transferToLocalDisk(descriptor);
+      } else if (progress.phase !== 'staging' && progress.phase !== 'done') {
+        this.startWorker(descriptor);
       }
     }
 
     this.emitProgress();
   }
 
-  private startWorker(entry: FileEntry): void {
+  private startWorker(descriptor: FileDescriptor): void {
     const worker = new Worker(
-      new URL('../workers/download.worker.ts', import.meta.url),
+      new URL('../workers/download.worker.js', import.meta.url),
       { type: 'module' }
     );
-    this.activeWorkers.set(entry.id, worker);
-    this.updateFile(entry.id, { status: 'downloading' });
+    this.activeWorkers.set(descriptor.id, worker);
+    this.updateFileProgress(descriptor.id, { phase: 'downloading' });
 
-    worker.onmessage = async (event: MessageEvent<WorkerOutMessage>) => {
+    worker.onmessage = async (event: MessageEvent<DownloadWorkerOutbound>) => {
       const msg = event.data;
-      const current = this.files.get(entry.id);
-      if (!current) return;
+      const currentProgress = this.progresses.get(descriptor.id);
+      if (!currentProgress) return;
 
       switch (msg.type) {
-        case 'progress':
-          this.updateFile(entry.id, { downloadedBytes: msg.downloadedBytes });
-          this.trackSpeed(msg.downloadedBytes - (current.downloadedBytes || 0));
+        case 'CHUNK_PROGRESS':
+          this.trackSpeed(msg.loaded - currentProgress.downloadedBytes);
+          this.updateFileProgress(descriptor.id, { downloadedBytes: msg.loaded });
           break;
 
-        case 'metadata_update':
-          this.updateFile(entry.id, { totalBytes: msg.totalBytes });
-          break;
-
-        case 'completed':
-          this.activeWorkers.delete(entry.id);
+        case 'CHUNK_DONE':
+          this.activeWorkers.delete(descriptor.id);
           worker.terminate();
-          this.updateFile(entry.id, { status: 'staged' });
+          this.updateFileProgress(descriptor.id, { 
+            phase: 'staging', 
+            downloadedBytes: msg.size,
+            totalBytes: msg.size 
+          });
           if (this.directoryHandle) {
-            void this.transferToLocalDisk(this.files.get(entry.id)!);
+            void this.transferToLocalDisk(this.descriptors.get(descriptor.id)!);
           }
           this.processQueue();
           break;
 
-        case 'error': {
-          const fileError = new Error(msg.error);
-          this.activeWorkers.delete(entry.id);
+        case 'CHUNK_ERROR': {
+          const fileError = new Error(msg.message);
+          this.activeWorkers.delete(descriptor.id);
           worker.terminate();
-          this.updateFile(entry.id, { status: 'error', errorMessage: msg.error });
-          this.listeners.error.forEach((h) => h(fileError, this.files.get(entry.id)!));
+          this.updateFileProgress(descriptor.id, { phase: 'error', error: msg.message });
+          this.listeners.error.forEach((h) => h(fileError, descriptor.id));
           this.processQueue();
           break;
         }
-
-        case 'paused':
-          this.activeWorkers.delete(entry.id);
-          worker.terminate();
-          this.updateFile(entry.id, { status: 'paused' });
-          this.processQueue();
-          break;
       }
     };
 
     worker.postMessage({
-      type: 'start',
-      id: entry.id,
-      url: entry.url,
-      startByte: entry.downloadedBytes || 0,
-    } satisfies WorkerInMessage);
+      type: 'START_CHUNK',
+      id: descriptor.id,
+      url: descriptor.url,
+      startByte: currentProgress.downloadedBytes || 0,
+    } satisfies DownloadWorkerInbound);
   }
 
-  private async transferToLocalDisk(entry: FileEntry): Promise<void> {
-    this.activeTransfers.add(entry.id);
-    this.updateFile(entry.id, { status: 'transferring' });
+  private async transferToLocalDisk(descriptor: FileDescriptor): Promise<void> {
+    this.activeTransfers.add(descriptor.id);
+    // 'staging' is used for both OPFS and transferring to local disk in this simplified model
+    // or we could add a 'transferring' phase to FilePhase if needed. 
+    // For now let's keep it as 'staging'.
 
     try {
       const rootDir = await navigator.storage.getDirectory();
-      const opfsHandle = await rootDir.getFileHandle(entry.id);
+      const opfsHandle = await rootDir.getFileHandle(descriptor.id);
       const opfsFile = await opfsHandle.getFile();
 
-      const targetDir = await this.resolveTargetDir(entry.folder);
-      const localHandle = await targetDir.getFileHandle(entry.filename, { create: true });
+      const pathParts = descriptor.path.split('/');
+      const filename = pathParts.pop()!;
+      const folder = pathParts.join('/');
+
+      const targetDir = await this.resolveTargetDir(folder);
+      const localHandle = await targetDir.getFileHandle(filename, { create: true });
       const writable = await localHandle.createWritable();
       await opfsFile.stream().pipeTo(writable);
 
       // Clean up OPFS entry
-      await rootDir.removeEntry(entry.id);
+      await rootDir.removeEntry(descriptor.id);
 
-      this.updateFile(entry.id, { status: 'done' });
+      this.updateFileProgress(descriptor.id, { phase: 'done' });
     } catch (err: unknown) {
       const e = err as Error;
-      this.updateFile(entry.id, { status: 'error', errorMessage: e.message });
-      this.listeners.error.forEach((h) => h(e, this.files.get(entry.id)!));
+      this.updateFileProgress(descriptor.id, { phase: 'error', error: e.message });
+      this.listeners.error.forEach((h) => h(e, descriptor.id));
     } finally {
-      this.activeTransfers.delete(entry.id);
+      this.activeTransfers.delete(descriptor.id);
       this.emitProgress();
     }
   }
@@ -321,17 +322,17 @@ export class DownloadEngine {
 
   // ─── State helpers ─────────────────────────────────────────────────────────
 
-  private updateFile(id: string, updates: Partial<FileEntry>): void {
-    const existing = this.files.get(id);
+  private updateFileProgress(id: string, updates: Partial<FileProgress>): void {
+    const existing = this.progresses.get(id);
     if (!existing) return;
     const updated = { ...existing, ...updates };
-    this.files.set(id, updated);
-    this.store.upsert(updated).catch(console.error);
+    this.progresses.set(id, updated);
     this.listeners['file-progress'].forEach((h) => h(updated));
     this.emitProgress();
   }
 
   private trackSpeed(byteDelta: number): void {
+    if (byteDelta <= 0) return;
     const now = Date.now();
     this.speedSamples.push({ time: now, bytes: byteDelta });
     // Keep only last 3 seconds
@@ -339,29 +340,31 @@ export class DownloadEngine {
     this.speedSamples = this.speedSamples.filter((s) => s.time >= cutoff);
   }
 
-  private buildStats(): ProgressStats {
-    const allFiles = Array.from(this.files.values());
-    const completedFiles = allFiles.filter((f) => f.status === 'done').length;
-    const stagedFiles = allFiles.filter((f) => f.status === 'staged').length;
-    const activeFiles = allFiles.filter((f) => f.status === 'downloading').length;
-    const totalBytes = allFiles.reduce((s, f) => s + (f.totalBytes || 0), 0);
-    const downloadedBytes = allFiles.reduce((s, f) => s + (f.downloadedBytes || 0), 0);
+  private buildStats(): GlobalProgress {
+    const allProgress = Array.from(this.progresses.values());
+    const totalFiles = allProgress.length;
+    const completedFiles = allProgress.filter((f) => f.phase === 'done').length;
+    
+    const totalBytes = allProgress.reduce((s, f) => s + (f.totalBytes || 0), 0);
+    const downloadedBytes = allProgress.reduce((s, f) => s + (f.downloadedBytes || 0), 0);
 
     const speedBytesPerSecond = this.speedSamples.reduce((s, x) => s + x.bytes, 0) / 3;
     const remaining = totalBytes - downloadedBytes;
-    const etaSeconds = speedBytesPerSecond > 0 ? remaining / speedBytesPerSecond : null;
+    const etaSeconds = speedBytesPerSecond > 0 ? remaining / speedBytesPerSecond : undefined;
+
+    let phase: 'downloading' | 'zipping' | 'done' = 'downloading';
+    if (completedFiles === totalFiles && totalFiles > 0) {
+      phase = 'done';
+    }
 
     return {
-      totalFiles: allFiles.length,
+      totalFiles,
       completedFiles,
-      stagedFiles,
-      activeFiles,
-      totalBytes,
+      totalBytes: totalBytes || undefined,
       downloadedBytes,
-      overallProgress: totalBytes > 0 ? downloadedBytes / totalBytes : 0,
       speedBytesPerSecond,
-      etaSeconds,
-      files: new Map(this.files),
+      etaSeconds: etaSeconds ?? undefined,
+      phase,
     };
   }
 }

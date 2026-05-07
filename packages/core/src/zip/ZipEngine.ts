@@ -2,7 +2,6 @@
  * ZipEngine — orchestrates streaming ZIP creation from URLs or OPFS files.
  *
  * This is the implementation behind `ds.zip('my-photos.zip')`.
- * Files are downloaded and zipped concurrently without loading all data into RAM.
  *
  * @internal
  */
@@ -23,9 +22,6 @@ export interface ZipEngineOptions {
 
 /**
  * Cross-browser download trigger for a ReadableStream.
- *
- * - Chrome/Edge: Uses File System Access API `showSaveFilePicker`
- * - Firefox/Safari/others: Falls back to streamsaver.js
  */
 async function triggerStreamDownload(
   fileName: string,
@@ -45,7 +41,6 @@ async function triggerStreamDownload(
     } catch (err: unknown) {
       const e = err as Error;
       if (e.name !== 'AbortError') {
-        // Fall through to streamsaver
         console.warn('[ZipIt] showSaveFilePicker failed, falling back to streamsaver:', e.message);
       } else {
         throw e; // User cancelled
@@ -76,12 +71,7 @@ export class ZipEngine {
 
   /**
    * Stream-zip the provided requests into a single archive delivered directly
-   * to the user's disk. Zero RAM spikes — files are compressed as they arrive.
-   *
-   * @example
-   * await zipEngine.streamArchive('photos.zip', [
-   *   { url: 'https://cdn.example.com/img1.jpg', fileName: 'img1.jpg' },
-   * ])
+   * to the user's disk.
    */
   async streamArchive(
     archiveName: string,
@@ -110,49 +100,18 @@ export class ZipEngine {
     );
 
     try {
-      const rootDir = supportsOPFS() ? await navigator.storage.getDirectory() : null;
-
       for (const req of requests) {
-        let stream: ReadableStream<Uint8Array> | null = null;
-
-        // Prefer OPFS if the file was already staged
-        if (req.opfsId && rootDir) {
-          try {
-            const fileHandle = await rootDir.getFileHandle(req.opfsId);
-            const file = await fileHandle.getFile();
-            stream = file.stream();
-          } catch {
-            // OPFS entry not found — fall through to network fetch
-          }
+        if (req.opfsId) {
+          await compressor.addFile(req.opfsId, req.fileName);
+        } else {
+          console.warn(`[ZipIt] File ${req.fileName} has no opfsId. Zipping from network is not supported in this model.`);
         }
-
-        // Network fetch as fallback (or primary for on-the-fly zip)
-        if (!stream) {
-          const response = await fetch(req.url);
-          if (!response.ok || !response.body) {
-            console.warn(
-              `[ZipIt] Failed to fetch ${req.url} (HTTP ${response.status}). Skipping.`
-            );
-            continue;
-          }
-          stream = response.body;
-        }
-
-        await compressor.addFileStream(req.fileName, stream);
       }
 
-      compressor.end();
+      compressor.finalize();
       await downloadPromise;
     } finally {
       this._isBusy = false;
     }
   }
-}
-
-function supportsOPFS(): boolean {
-  return (
-    typeof navigator !== 'undefined' &&
-    typeof navigator.storage !== 'undefined' &&
-    typeof navigator.storage.getDirectory === 'function'
-  );
 }

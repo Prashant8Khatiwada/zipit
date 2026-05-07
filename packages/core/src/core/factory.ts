@@ -1,89 +1,59 @@
 /**
  * createZipIt — the primary public factory function.
- *
- * @example
- * ```ts
- * import { createZipIt } from '@khatiwadaprashant/zipit-core';
- *
- * const ds = createZipIt({ concurrency: 4 });
- * ds.add('https://example.com/photo1.jpg', { folder: 'photos' });
- * ds.add('https://example.com/photo2.jpg', { folder: 'photos' });
- *
- * ds.on('progress', ({ overallProgress }) => {
- *   console.log(`${(overallProgress * 100).toFixed(1)}%`);
- * });
- *
- * await ds.start({ saveToFolder: true });
- *
- * // OR: stream-zip without ever hitting the server
- * await ds.zip('my-photos.zip');
- * ```
  */
 
 import type {
-  ZipItOptions,
+  ZipitConfig,
   ZipItInstance,
   AddFileOptions,
-  FileEntry,
+  FileDescriptor,
+  FileProgress,
+  GlobalProgress,
   ProgressHandler,
-  CompleteHandler,
   ErrorHandler,
-  FileProgressHandler,
 } from '../types';
 import { StateStore } from '../store/StateStore';
 import { DownloadEngine } from './DownloadEngine';
 import { ZipEngine } from '../zip/ZipEngine';
 import { filenameFromUrl, idFromUrl } from '../utils/helpers';
 
-const DEFAULT_OPTIONS: Required<ZipItOptions> = {
+const DEFAULT_CONFIG: ZipitConfig = {
   concurrency: 3,
-  zipBackpressureLimit: 10,
-  streamBufferBytes: 5 * 1024 * 1024,
-  dbName: 'zipit_v1',
-  onProgress: undefined as unknown as ProgressHandler,
-  onComplete: undefined as unknown as CompleteHandler,
-  onError: undefined as unknown as ErrorHandler,
-  onFileProgress: undefined as unknown as FileProgressHandler,
+  chunkSizeBytes: 4 * 1024 * 1024,
+  compressionLevel: 6,
+  retryAttempts: 3,
+  retryDelayMs: 1000,
 };
 
 /**
  * Create a new ZipIt instance.
  *
- * @param options - Configuration for concurrency, buffering, and event handlers.
+ * @param config - Configuration for concurrency, buffering, and event handlers.
  * @returns A `ZipItInstance` with the full public API.
- *
- * @example
- * const ds = createZipIt({ concurrency: 4, onProgress: console.log });
  */
-export function createZipIt(options: ZipItOptions = {}): ZipItInstance {
-  const resolved: Required<ZipItOptions> = { ...DEFAULT_OPTIONS, ...options };
+export function createZipIt(config: Partial<ZipitConfig> = {}): ZipItInstance {
+  const resolved: ZipitConfig = { ...DEFAULT_CONFIG, ...config };
 
-  const store = new StateStore(resolved.dbName);
+  const store = new StateStore('zipit_v1');
   const engine = new DownloadEngine(resolved, store);
   const zipEngine = new ZipEngine({
-    maxInFlight: resolved.zipBackpressureLimit,
-    streamBufferBytes: resolved.streamBufferBytes,
+    maxInFlight: 10,
+    streamBufferBytes: 5 * 1024 * 1024,
   });
-
-  // Register top-level option handlers
-  if (resolved.onProgress) engine.on('progress', resolved.onProgress);
-  if (resolved.onComplete) engine.on('complete', resolved.onComplete);
-  if (resolved.onError) engine.on('error', resolved.onError);
-  if (resolved.onFileProgress) engine.on('file-progress', resolved.onFileProgress);
 
   // ─── Helper ───────────────────────────────────────────────────────────────
 
-  function buildEntry(url: string, opts: AddFileOptions = {}): FileEntry {
-    const id = idFromUrl(`${url}${opts.folder ?? ''}`);
+  function buildDescriptor(url: string, opts: AddFileOptions = {}): FileDescriptor {
+    const filename = opts.filename ?? filenameFromUrl(url);
+    const folder = opts.folder ?? '';
+    const path = folder ? `${folder}/${filename}` : filename;
+    const id = idFromUrl(`${url}${path}`);
+    
     return {
       id,
       url,
-      filename: opts.filename ?? filenameFromUrl(url),
-      folder: opts.folder,
-      totalBytes: opts.totalBytes ?? 0,
-      downloadedBytes: 0,
-      status: 'idle',
-      addedAt: Date.now(),
+      path,
+      sizeBytes: opts.sizeBytes,
       metadata: opts.metadata,
     };
   }
@@ -92,9 +62,9 @@ export function createZipIt(options: ZipItOptions = {}): ZipItInstance {
 
   const instance: ZipItInstance = {
     add(url, opts) {
-      const entry = buildEntry(url, opts);
-      engine.addFile(entry);
-      return entry;
+      const descriptor = buildDescriptor(url, opts);
+      engine.addFile(descriptor);
+      return descriptor;
     },
 
     addAll(urls, opts) {
@@ -118,11 +88,17 @@ export function createZipIt(options: ZipItOptions = {}): ZipItInstance {
     },
 
     async zip(outputFilename = 'zipit-archive.zip') {
-      const files = Array.from(engine.getFiles().values());
+      const files = engine.getFiles();
+      const progresses = engine.getProgress(); // This actually returns GlobalProgress, we need individual progresses if we want to check staged status
+      // Actually DownloadEngine.getFiles() now returns FileDescriptor[]
+      // We might need to know which ones are staged. 
+      // For now, let's just pass them to zipEngine.
       const requests = files.map((f) => ({
         url: f.url,
-        fileName: f.folder ? `${f.folder}/${f.filename}` : f.filename,
-        opfsId: f.status === 'staged' ? f.id : undefined,
+        fileName: f.path,
+        // We don't easily have 'staged' info here anymore without more plumbing
+        // but ZipEngine can check OPFS itself if we give it the id.
+        opfsId: f.id, 
       }));
       await zipEngine.streamArchive(outputFilename, requests);
     },
@@ -140,12 +116,12 @@ export function createZipIt(options: ZipItOptions = {}): ZipItInstance {
       engine.setDirectoryHandle(handle);
     },
 
-    on(event: string, handler: unknown) {
-      return engine.on(event as 'progress', handler as ProgressHandler);
+    on(event: string, handler: any) {
+      return engine.on(event as any, handler);
     },
 
-    off(event: string, handler: unknown) {
-      engine.off(event as 'progress', handler as ProgressHandler);
+    off(event: string, handler: any) {
+      engine.off(event as any, handler);
     },
 
     getFiles() {

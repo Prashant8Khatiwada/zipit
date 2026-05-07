@@ -5,8 +5,6 @@
  * @internal — not part of the public API surface.
  */
 
-import type { FileEntry } from '../types';
-
 const STORE_NAME = 'manifest';
 const DB_VERSION = 1;
 
@@ -41,27 +39,27 @@ export class StateStore {
     });
   }
 
-  async getAll(): Promise<FileEntry[]> {
+  async getAll(): Promise<any[]> {
     const db = await this.dbPromise;
-    return new Promise<FileEntry[]>((resolve, reject) => {
+    return new Promise<any[]>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const req = tx.objectStore(STORE_NAME).getAll();
-      req.onsuccess = () => resolve(req.result as FileEntry[]);
+      req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
   }
 
-  async get(id: string): Promise<FileEntry | undefined> {
+  async get(id: string): Promise<any | undefined> {
     const db = await this.dbPromise;
-    return new Promise<FileEntry | undefined>((resolve, reject) => {
+    return new Promise<any | undefined>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const req = tx.objectStore(STORE_NAME).get(id);
-      req.onsuccess = () => resolve(req.result as FileEntry | undefined);
+      req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
   }
 
-  async upsert(entry: FileEntry): Promise<void> {
+  async upsert(entry: any): Promise<void> {
     const db = await this.dbPromise;
     return new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');

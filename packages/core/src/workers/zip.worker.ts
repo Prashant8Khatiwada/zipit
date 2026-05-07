@@ -1,73 +1,59 @@
 /// <reference lib="webworker" />
 /**
  * ZipIt ZIP Worker
- *
- * Receives chunked file data and streams it through fflate's ZIP compressor.
- * Outputs compressed chunks back to the main thread via postMessage.
- *
- * Uses backpressure signaling to prevent the worker mailbox from bloating.
  */
 
 import { Zip, ZipPassThrough } from 'fflate';
-
-interface InitMessage { type: 'init' }
-interface AddFileMessage { type: 'addFile'; fileId: number; fileName: string }
-interface ChunkMessage {
-  type: 'chunk';
-  fileId: number;
-  chunk: Uint8Array;
-  final: boolean;
-}
-interface EndMessage { type: 'end' }
-
-type WorkerMessage = InitMessage | AddFileMessage | ChunkMessage | EndMessage;
+import type { ZipWorkerInbound, ZipWorkerOutbound } from '../types';
 
 let zip: Zip;
-const fileStreams = new Map<number, ZipPassThrough>();
+let zipChunks: Uint8Array[] = [];
 
-self.onmessage = (event: MessageEvent<WorkerMessage>) => {
+zip = new Zip((err, chunk, final) => {
+  if (err) {
+    self.postMessage({ type: 'ZIP_ERROR', message: err.message } satisfies ZipWorkerOutbound);
+    return;
+  }
+  zipChunks.push(chunk);
+});
+
+self.onmessage = async (event: MessageEvent<ZipWorkerInbound>) => {
   const msg = event.data;
 
   switch (msg.type) {
-    case 'init': {
-      zip = new Zip((err, chunk, final) => {
-        if (err) {
-          self.postMessage({ type: 'error', error: err.message });
-          return;
+    case 'ADD_FILE': {
+      try {
+        const fileStream = new ZipPassThrough(msg.path);
+        zip.add(fileStream);
+
+        const rootDir = await navigator.storage.getDirectory();
+        const fileHandle = await rootDir.getFileHandle(msg.id);
+        const file = await fileHandle.getFile();
+        const reader = file.stream().getReader();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            fileStream.push(new Uint8Array(0), true);
+            break;
+          }
+          fileStream.push(value, false);
         }
-
-        // Transfer chunk without copy using Transferable
-        const buffer = chunk.buffer.slice(
-          chunk.byteOffset,
-          chunk.byteOffset + chunk.byteLength
-        );
-        self.postMessage({ type: 'data', chunk: new Uint8Array(buffer), final }, [buffer]);
-      });
-      break;
-    }
-
-    case 'addFile': {
-      const fileStream = new ZipPassThrough(msg.fileName);
-      fileStreams.set(msg.fileId, fileStream);
-      zip.add(fileStream);
-      break;
-    }
-
-    case 'chunk': {
-      const fileStream = fileStreams.get(msg.fileId);
-      if (!fileStream) break;
-
-      if (msg.final) {
-        fileStream.push(msg.chunk, true);
-        fileStreams.delete(msg.fileId);
-      } else {
-        fileStream.push(msg.chunk, false);
+      } catch (err: unknown) {
+        self.postMessage({ 
+          type: 'ZIP_ERROR', 
+          message: (err as Error).message 
+        } satisfies ZipWorkerOutbound);
       }
       break;
     }
 
-    case 'end': {
+    case 'FINALIZE': {
       zip.end();
+      const blob = new Blob(zipChunks, { type: 'application/zip' });
+      self.postMessage({ type: 'ZIP_DONE', blob } satisfies ZipWorkerOutbound);
+      // Reset for next potential use or just let it be terminated
+      zipChunks = [];
       break;
     }
   }

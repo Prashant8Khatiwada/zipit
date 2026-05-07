@@ -4,20 +4,28 @@
   "private": true,
   "description": "ZipIt — Client-side ZIP streaming & batch download library",
   "scripts": {
-    "dev": "pnpm --filter @khatiwadaprashant/zipit-web dev",
-    "dev:docs": "pnpm --filter @khatiwadaprashant/zipit-docs dev",
-    "build": "pnpm -r --filter '@khatiwadaprashant/zipit-core' --filter '@khatiwadaprashant/zipit-react' build",
-    "build:all": "pnpm -r build",
-    "test": "pnpm -r test",
-    "test:coverage": "pnpm -r test:coverage",
-    "lint": "pnpm -r lint",
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint . --fix",
     "typecheck": "pnpm -r typecheck",
-    "release": "pnpm -r --filter '@khatiwadaprashant/zipit-core' --filter '@khatiwadaprashant/zipit-react' publish --access public"
+    "clean": "pnpm -r exec rm -rf dist node_modules"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
     "prettier": "^3.2.5",
-    "@changesets/cli": "^2.27.1"
+    "@changesets/cli": "^2.27.1",
+    "tsup": "^8.0.2",
+    "vitest": "^1.5.0",
+    "@vitest/coverage-v8": "^1.5.0",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.34.0",
+    "eslint-plugin-react-hooks": "^4.6.0"
   },
   "engines": {
     "node": ">=18.0.0",

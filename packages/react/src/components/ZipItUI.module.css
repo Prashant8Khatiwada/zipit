@@ -1,0 +1,227 @@
+.container {
+  --zipit-bg: #0A0A0F;
+  --zipit-accent: #00E5FF;
+  --zipit-text: #E8E8F0;
+  --zipit-gray: #2A2A35;
+  --zipit-pending: #4A4A55;
+  --zipit-downloading: #00E5FF;
+  --zipit-zipping: #00FF9D;
+  --zipit-error: #FF4D4D;
+  
+  background: var(--zipit-bg);
+  color: var(--zipit-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  border-radius: 12px;
+  border: 1px solid var(--zipit-gray);
+  padding: 24px;
+  max-width: 600px;
+  margin: 0 auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+}
+
+/* DropZone */
+.dropZone {
+  border: 2px dashed var(--zipit-gray);
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dropZoneActive {
+  border-color: var(--zipit-accent);
+  background: rgba(0, 229, 255, 0.05);
+  animation: border-dance 2s infinite linear;
+}
+
+@keyframes border-dance {
+  0% { border-style: dashed; }
+  50% { border-style: dotted; }
+  100% { border-style: dashed; }
+}
+
+/* Global Progress */
+.globalProgress {
+  margin-bottom: 24px;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+
+.percent {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stats {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.pill {
+  background: var(--zipit-gray);
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--zipit-accent);
+}
+
+.progressBarContainer {
+  height: 8px;
+  background: var(--zipit-gray);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progressBar {
+  height: 100%;
+  background: var(--zipit-accent);
+  transition: width 0.3s ease-out;
+}
+
+.shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* File List */
+.fileList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 24px;
+  padding-right: 8px;
+}
+
+.fileItem {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.fileInfo {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.fileName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileProgressBar {
+  height: 4px;
+  background: var(--zipit-gray);
+  border-radius: 2px;
+}
+
+.fileProgressFill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.phase-pending { background-color: var(--zipit-pending); }
+.phase-downloading { background-color: var(--zipit-downloading); }
+.phase-zipping { background-color: var(--zipit-zipping); }
+.phase-done { background-color: var(--zipit-zipping); }
+.phase-error { background-color: var(--zipit-error); }
+
+/* Buttons */
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btnPrimary {
+  background: var(--zipit-accent);
+  color: #000;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btnSecondary {
+  background: var(--zipit-gray);
+  color: var(--zipit-text);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Recovery Banner */
+.recoveryBanner {
+  background: rgba(255, 179, 0, 0.1);
+  border: 1px solid rgba(255, 179, 0, 0.3);
+  color: #FFB300;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.recoverBtn {
+  background: #FFB300;
+  color: #000;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+}

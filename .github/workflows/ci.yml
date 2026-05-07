@@ -81,14 +81,14 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      # Publish @dropstream/core
-      - name: Publish @dropstream/core
-        run: pnpm publish --filter @dropstream/core --access public --no-git-checks
+      # Publish @khatiwadaprashant/zipit-core
+      - name: Publish @khatiwadaprashant/zipit-core
+        run: pnpm publish --filter @khatiwadaprashant/zipit-core --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      # Publish @dropstream/react
-      - name: Publish @dropstream/react
-        run: pnpm publish --filter @dropstream/react --access public --no-git-checks
+      # Publish @khatiwadaprashant/zipit-react
+      - name: Publish @khatiwadaprashant/zipit-react
+        run: pnpm publish --filter @khatiwadaprashant/zipit-react --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       # Create GitHub Release

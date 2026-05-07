@@ -3,7 +3,12 @@
   "version": "0.1.1",
   "description": "React hooks for @khatiwadaprashant/zipit-core — useZipIt, useZip",
   "license": "MIT",
-  "author": "Rochak Sulu",
+  "author": "Prashant Khatiwada",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Prashant8Khatiwada/zipit"
+  },
+  "homepage": "https://zipit.dev",
   "keywords": ["zipit", "react", "hooks", "download", "zip", "streaming"],
   "sideEffects": false,
   "type": "module",

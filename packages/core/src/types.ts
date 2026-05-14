@@ -14,7 +14,8 @@ export type FileStatus =
   | 'transferring' // Streaming from OPFS → local FS
   | 'done'       // Successfully transferred / zipped
   | 'paused'     // Mid-download, paused by user
-  | 'error';     // Failed (errorMessage populated)
+  | 'error'      // Failed (errorMessage populated)
+  | 'removed';   // Explicitly removed from queue
 
 /** A single file entry tracked by ZipIt. */
 export interface FileEntry {
@@ -41,6 +42,12 @@ export interface FileEntry {
   errorMessage?: string;
   /** Arbitrary user-supplied metadata. */
   metadata?: Record<string, unknown>;
+  /** Number of auto-retries attempted so far. */
+  retryCount: number;
+  /** Unix timestamp when file reached 'staged' status. */
+  stagedAt?: number;
+  /** Unix timestamp when file reached 'done' status. */
+  completedAt?: number;
 }
 
 // ─── Progress ─────────────────────────────────────────────────────────────────
@@ -65,6 +72,8 @@ export interface ProgressStats {
   speedBytesPerSecond: number;
   /** Estimated seconds remaining. null if unknown. */
   etaSeconds: number | null;
+  /** Files currently being written into the zip archive. */
+  zippingFiles: number;
   /** Map of fileId → FileEntry for all tracked files. */
   files: Map<string, FileEntry>;
 }
@@ -125,6 +134,45 @@ export interface ZipItOptions {
    * Called when an individual file's state changes.
    */
   onFileProgress?: FileProgressHandler;
+  /**
+   * Called when a file is removed from the queue.
+   */
+  onFileRemoved?: FileProgressHandler;
+  /**
+   * Per-chunk fetch timeout in milliseconds.
+   * @default 30000 (30s)
+   */
+  fetchTimeoutMs?: number;
+  /**
+   * Maximum auto-retries per file on network error.
+   * @default 3
+   */
+  maxRetriesPerFile?: number;
+  /**
+   * Initial delay between auto-retries in milliseconds.
+   * @default 1000
+   */
+  retryDelayMs?: number;
+  /**
+   * Exponential backoff multiplier for retries.
+   * @default 2
+   */
+  retryBackoffMultiplier?: number;
+  /**
+   * If hydrate() takes longer than this, it resolves with [].
+   * @default 5000
+   */
+  hydrateTimeoutMs?: number;
+  /**
+   * Enable verbose console logging for internal state transitions.
+   * @default false
+   */
+  debug?: boolean;
+  /**
+   * Allowed URL protocols for ds.add().
+   * @default ['https:', 'http:']
+   */
+  allowedProtocols?: string[];
 }
 
 /** Options for adding an individual file to the queue. */
@@ -188,9 +236,10 @@ export interface ZipItInstance {
    * Does NOT require `start()` to have been called first.
    *
    * @param outputFilename - The name of the resulting .zip file
+   * @param options - Optional configuration (e.g. AbortSignal)
    * @example ds.zip('my-photos.zip')
    */
-  zip: (outputFilename?: string) => Promise<void>;
+  zip: (outputFilename?: string, options?: { signal?: AbortSignal }) => Promise<void>;
 
   /**
    * Prompt the user to pick a local folder and save all staged files there,
@@ -251,4 +300,71 @@ export interface ZipItInstance {
    * @returns Files that were interrupted and can be resumed.
    */
   hydrate: () => Promise<FileEntry[]>;
+  /**
+   * Retry a specific failed file.
+   * @param fileId - The ID of the file to retry
+   * @throws {ZipItError} if file is not in 'error' status
+   */
+  retry: (fileId: string) => void;
+  /**
+   * Retry all files currently in 'error' status.
+   */
+  retryFailed: () => void;
+  /**
+   * Remove a file from the queue and delete its OPFS cache.
+   * @param fileId - The ID of the file to remove
+   * @throws {ZipItError} if file is currently downloading and cannot be aborted
+   */
+  remove: (fileId: string) => Promise<void>;
+  /**
+   * Update metadata or filename for a queued file.
+   * Only allowed for files in 'idle' or 'queued' status.
+   * @param fileId - The ID of the file to update
+   * @param options - Partial options to update (filename, folder, metadata)
+   * @throws {ZipItError} if file is already downloading or finished
+   */
+  update: (
+    fileId: string,
+    options: Partial<Pick<AddFileOptions, 'filename' | 'folder' | 'metadata'>>
+  ) => void;
+  /**
+   * Get a single file entry by ID.
+   */
+  getFile: (fileId: string) => FileEntry | undefined;
+  /**
+   * Get storage usage and quota estimates.
+   */
+  getStorageEstimate: () => Promise<StorageEstimate>;
+}
+
+// ─── Errors ───────────────────────────────────────────────────────────────────
+
+/** Structured error codes for ZipItError. */
+export type ZipItErrorCode =
+  | 'QUOTA_EXCEEDED'
+  | 'FETCH_TIMEOUT'
+  | 'FETCH_FAILED'
+  | 'WORKER_CRASHED'
+  | 'OPFS_UNAVAILABLE'
+  | 'FSA_UNAVAILABLE'
+  | 'ALREADY_RUNNING'
+  | 'FILE_NOT_FOUND'
+  | 'FILE_NOT_RETRYABLE'
+  | 'FILE_NOT_REMOVABLE'
+  | 'HYDRATE_TIMEOUT'
+  | 'INVALID_URL'
+  | 'UNKNOWN';
+
+/**
+ * Custom error class for ZipIt-specific failures.
+ */
+export class ZipItError extends Error {
+  constructor(
+    message: string,
+    public readonly code: ZipItErrorCode,
+    public readonly fileId?: string
+  ) {
+    super(message);
+    this.name = 'ZipItError';
+  }
 }

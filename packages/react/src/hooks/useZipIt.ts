@@ -61,6 +61,18 @@ export interface UseZipItReturn {
   hydrate: () => Promise<FileEntry[]>;
   /** Clear all state and OPFS cache. */
   reset: () => Promise<void>;
+  /** Retry a specific failed file. */
+  retry: (fileId: string) => void;
+  /** Retry all failed files. */
+  retryFailed: () => void;
+  /** Remove a file from the queue. */
+  remove: (fileId: string) => Promise<void>;
+  /** Update metadata/filename for a queued file. */
+  update: (fileId: string, options: Partial<Pick<AddFileOptions, 'filename' | 'folder' | 'metadata'>>) => void;
+  /** Get a single file entry by ID. */
+  getFile: (fileId: string) => FileEntry | undefined;
+  /** Get storage usage and quota estimates. */
+  getStorageEstimate: () => Promise<StorageEstimate>;
   /** Live progress statistics, updated on every animation frame. */
   progress: ProgressStats;
   /** All tracked files, keyed by ID. */
@@ -83,6 +95,7 @@ const EMPTY_PROGRESS: ProgressStats = {
   overallProgress: 0,
   speedBytesPerSecond: 0,
   etaSeconds: null,
+  zippingFiles: 0,
   files: new Map(),
 };
 
@@ -93,18 +106,33 @@ const EMPTY_PROGRESS: ProgressStats = {
  * and event listeners are managed automatically.
  */
 export function useZipIt(options: UseZipItOptions = {}): UseZipItReturn {
-  // Memoize options as a stable ref to avoid re-creating the instance on every render
-  const optionsRef = useRef(options);
+  // Memoize options as stable refs to avoid re-creating the instance
+  const onProgressRef = useRef(options.onProgress);
+  const onCompleteRef = useRef(options.onComplete);
+  const onErrorRef = useRef(options.onError);
+  const onFileProgressRef = useRef(options.onFileProgress);
+  const onFileRemovedRef = useRef(options.onFileRemoved);
+
   useEffect(() => {
-    optionsRef.current = options;
+    onProgressRef.current = options.onProgress;
+    onCompleteRef.current = options.onComplete;
+    onErrorRef.current = options.onError;
+    onFileProgressRef.current = options.onFileProgress;
+    onFileRemovedRef.current = options.onFileRemoved;
   });
 
   // Create the instance exactly once
-  const instance = useMemo(
-    () => createZipIt(optionsRef.current),
+  const instance = useMemo(() => {
+    return createZipIt({
+      ...options,
+      onProgress: (stats) => onProgressRef.current?.(stats),
+      onComplete: (stats) => onCompleteRef.current?.(stats),
+      onError: (err, file) => onErrorRef.current?.(err, file),
+      onFileProgress: (file) => onFileProgressRef.current?.(file),
+      onFileRemoved: (file) => onFileRemovedRef.current?.(file),
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
+  }, []);
 
   const [progress, setProgress] = useState<ProgressStats>(EMPTY_PROGRESS);
   const [isPaused, setIsPaused] = useState(false);
@@ -121,9 +149,15 @@ export function useZipIt(options: UseZipItOptions = {}): UseZipItReturn {
       setIsBusy(false);
     });
 
+    const unsubFileRemoved = instance.on('file-removed', () => {
+      setProgress(instance.getProgress());
+    });
+
     return () => {
       unsubProgress();
       unsubComplete();
+      unsubFileRemoved();
+      instance.pause(); // Cleanup: pause downloads on unmount
     };
   }, [instance]);
 
@@ -186,6 +220,17 @@ export function useZipIt(options: UseZipItOptions = {}): UseZipItReturn {
     setIsPaused(false);
   }, [instance]);
 
+  const retry = useCallback((fileId: string) => instance.retry(fileId), [instance]);
+  const retryFailed = useCallback(() => instance.retryFailed(), [instance]);
+  const remove = useCallback((fileId: string) => instance.remove(fileId), [instance]);
+  const update = useCallback(
+    (fileId: string, opts: Partial<Pick<AddFileOptions, 'filename' | 'folder' | 'metadata'>>) =>
+      instance.update(fileId, opts),
+    [instance]
+  );
+  const getFile = useCallback((fileId: string) => instance.getFile(fileId), [instance]);
+  const getStorageEstimate = useCallback(() => instance.getStorageEstimate(), [instance]);
+
   return {
     add,
     addAll,
@@ -197,6 +242,12 @@ export function useZipIt(options: UseZipItOptions = {}): UseZipItReturn {
     saveToFolder,
     hydrate,
     reset,
+    retry,
+    retryFailed,
+    remove,
+    update,
+    getFile,
+    getStorageEstimate,
     progress,
     files: progress.files,
     isPaused,

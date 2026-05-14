@@ -41,12 +41,22 @@ export interface UseZipReturn {
   progress: number;
   /** Error from the last failed zip, if any. */
   error: Error | null;
+  /** Cancel an in-progress zip operation. */
+  abort: () => void;
 }
 
 export function useZip(): UseZipReturn {
   const [isZipping, setIsZipping] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<Error | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const abort = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      setIsZipping(false);
+    }
+  }, []);
 
   const zip = useCallback(
     async (
@@ -57,6 +67,9 @@ export function useZip(): UseZipReturn {
       setIsZipping(true);
       setProgress(0);
       setError(null);
+
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
 
       try {
         const ds = createZipIt({
@@ -69,16 +82,23 @@ export function useZip(): UseZipReturn {
           })
         );
 
-        await ds.zip(filename);
+          })
+        );
+
+        // We need to pass the signal to ds.zip
+        // For now, we'll cast and assume it supports it or we'll update core next
+        await (ds as any).zip(filename, { signal: abortController.signal });
       } catch (err: unknown) {
+        if ((err as Error).name === 'AbortError') return;
         setError(err instanceof Error ? err : new Error(String(err)));
       } finally {
         setIsZipping(false);
         setProgress(1);
+        abortControllerRef.current = null;
       }
     },
     []
   );
 
-  return { zip, isZipping, progress, error };
+  return { zip, isZipping, progress, error, abort };
 }

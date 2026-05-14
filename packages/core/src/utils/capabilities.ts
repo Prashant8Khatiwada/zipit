@@ -18,6 +18,12 @@ export interface BrowserCapabilities {
   serviceWorkers: boolean;
   /** ReadableStream with getReader() support. */
   streams: boolean;
+  /** navigator.storage.estimate() support. */
+  storageEstimate: boolean;
+  /** FileSystemSyncAccessHandle support (required for high-perf OPFS). */
+  syncAccessHandle: boolean;
+  /** CompressionStream API support. */
+  compressionStreams: boolean;
 }
 
 /** @returns true if this browser supports OPFS SyncAccessHandle */
@@ -52,6 +58,16 @@ export function supportsStreams(): boolean {
   );
 }
 
+/** @returns true if navigator.storage.estimate is available */
+export function supportsStorageEstimate(): boolean {
+  return typeof navigator !== 'undefined' && typeof navigator.storage?.estimate === 'function';
+}
+
+/** @returns true if CompressionStream is available */
+export function supportsCompressionStreams(): boolean {
+  return typeof CompressionStream !== 'undefined';
+}
+
 /**
  * Get a full snapshot of browser capabilities relevant to ZipIt.
  *
@@ -66,5 +82,8 @@ export function getBrowserCapabilities(): BrowserCapabilities {
     workers: supportsWorkers(),
     serviceWorkers: supportsServiceWorkers(),
     streams: supportsStreams(),
+    storageEstimate: supportsStorageEstimate(),
+    syncAccessHandle: supportsOPFS(), // Roughly equivalent for now
+    compressionStreams: supportsCompressionStreams(),
   };
 }

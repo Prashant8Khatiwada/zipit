@@ -71,6 +71,17 @@ export class StateStore {
     });
   }
 
+  async upsertAll(entries: FileEntry[]): Promise<void> {
+    const db = await this.dbPromise;
+    return new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      entries.forEach((entry) => store.put(entry));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
   async delete(id: string): Promise<void> {
     const db = await this.dbPromise;
     return new Promise<void>((resolve, reject) => {

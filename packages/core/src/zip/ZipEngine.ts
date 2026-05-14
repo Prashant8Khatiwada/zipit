@@ -14,11 +14,15 @@ export interface ZipRequest {
   fileName: string;
   /** If provided, reads from OPFS instead of re-fetching from network. */
   opfsId?: string;
+  /** Custom stream provider (e.g. wait for DownloadEngine to stage the file). */
+  waitForStream?: () => Promise<ReadableStream<Uint8Array>>;
 }
 
 export interface ZipEngineOptions {
   maxInFlight?: number;
   streamBufferBytes?: number;
+  onFileStart?: (req: ZipRequest) => void;
+  onFileEnd?: (req: ZipRequest) => void;
 }
 
 /**
@@ -67,6 +71,8 @@ export class ZipEngine {
     this.options = {
       maxInFlight: options.maxInFlight ?? 10,
       streamBufferBytes: options.streamBufferBytes ?? 5 * 1024 * 1024,
+      onFileStart: options.onFileStart ?? (() => {}),
+      onFileEnd: options.onFileEnd ?? (() => {}),
     };
   }
 
@@ -85,7 +91,8 @@ export class ZipEngine {
    */
   async streamArchive(
     archiveName: string,
-    requests: ZipRequest[]
+    requests: ZipRequest[],
+    signal?: AbortSignal
   ): Promise<void> {
     if (this._isBusy) {
       throw new Error(
@@ -113,10 +120,20 @@ export class ZipEngine {
       const rootDir = supportsOPFS() ? await navigator.storage.getDirectory() : null;
 
       for (const req of requests) {
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
         let stream: ReadableStream<Uint8Array> | null = null;
 
-        // Prefer OPFS if the file was already staged
-        if (req.opfsId && rootDir) {
+        // 1. Prefer custom stream provider
+        if (req.waitForStream) {
+          try {
+            stream = await req.waitForStream();
+          } catch (e) {
+            console.warn(`[ZipIt] waitForStream failed for ${req.fileName}:`, e);
+          }
+        }
+
+        // 2. Prefer OPFS if the file was already staged
+        if (!stream && req.opfsId && rootDir) {
           try {
             const fileHandle = await rootDir.getFileHandle(req.opfsId);
             const file = await fileHandle.getFile();
@@ -128,7 +145,7 @@ export class ZipEngine {
 
         // Network fetch as fallback (or primary for on-the-fly zip)
         if (!stream) {
-          const response = await fetch(req.url);
+          const response = await fetch(req.url, { signal });
           if (!response.ok || !response.body) {
             console.warn(
               `[ZipIt] Failed to fetch ${req.url} (HTTP ${response.status}). Skipping.`
@@ -138,7 +155,12 @@ export class ZipEngine {
           stream = response.body;
         }
 
+          stream = response.body;
+        }
+
+        this.options.onFileStart(req);
         await compressor.addFileStream(req.fileName, stream);
+        this.options.onFileEnd(req);
       }
 
       compressor.end();

@@ -36,6 +36,29 @@ export function filenameFromUrl(url: string): string {
 }
 
 /**
+ * Sanitize a filename to prevent path traversal and other issues.
+ */
+export function sanitizeFilename(raw: string): string {
+  return raw
+    .replace(/\0/g, '') // Strip null bytes
+    .replace(/^\/+/, '') // Strip leading slashes
+    .replace(/\.\.+\//g, '') // Strip path traversal (../)
+    .trim();
+}
+
+/**
+ * Basic URL validation.
+ */
+export function isValidUrl(url: string, allowedProtocols: string[] = ['http:', 'https:']): boolean {
+  try {
+    const parsed = new URL(url);
+    return allowedProtocols.includes(parsed.protocol);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Generate a stable, collision-resistant ID from a URL.
  * Uses a simple djb2 hash to avoid crypto dependency.
  */

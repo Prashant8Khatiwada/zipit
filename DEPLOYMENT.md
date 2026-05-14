@@ -42,11 +42,19 @@ pnpm run typecheck
 ```
 
 ### Step B: Publish
-Run the release command from the root directory:
+Run the release command from the root directory.
+
+**Using NPM Login (Standard):**
 ```bash
 pnpm run release
 ```
-*Note: This command uses `pnpm -r publish --access public` under the hood to ensure scoped packages are publicly accessible.*
+
+**Using Automation Token (Bypass 2FA):**
+If you have an automation token, use the following command to bypass the interactive 2FA prompt:
+```bash
+pnpm run release --no-git-checks --_authToken=YOUR_NPM_TOKEN_HERE
+```
+*Note: Replace `YOUR_NPM_TOKEN_HERE` with your actual token.*
 
 ---
 

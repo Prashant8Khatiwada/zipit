@@ -133,7 +133,7 @@ goBtn.addEventListener('click', async () => {
     return;
   }
 
-  urls.forEach(url => ds.add(url));
+  await ds.addAll(urls);
   location.hash = '#transit';
   updateStatus('INITIALIZING TRANSIT...');
 
@@ -206,6 +206,11 @@ function renderFileList(files: Map<string, FileEntry>) {
       if (row) {
         const s = row.querySelector('.s-tag');
         if (s) s.textContent = statusLabel;
+        
+        const actions = row.querySelector('.row-actions') as HTMLElement;
+        if (actions) {
+          actions.style.display = (file.status === 'error' || file.status === 'queued' || file.status === 'idle') ? 'flex' : 'none';
+        }
       }
     } else {
       const row = document.createElement('div');
@@ -213,13 +218,37 @@ function renderFileList(files: Map<string, FileEntry>) {
       row.style.borderBottom = '1px solid rgba(34, 197, 94, 0.1)';
       row.style.display = 'flex';
       row.style.justifyContent = 'space-between';
+      row.style.alignItems = 'center';
       row.style.fontSize = '0.8rem';
       row.style.fontFamily = 'Geist Mono';
       row.dataset.id = file.id;
       row.innerHTML = `
-        <span style="color: #fff; opacity: 0.7;">> ${file.filename}</span>
-        <span class="s-tag" style="font-weight: 700; color: #22c55e;">${statusLabel}</span>
+        <span style="color: #fff; opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%;">> ${file.filename}</span>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <span class="s-tag" style="font-weight: 700; color: #22c55e;">${statusLabel}</span>
+          <div class="row-actions" style="display: none; gap: 0.5rem;">
+            ${file.status === 'error' ? `<button class="retry-btn" style="background: #22c55e; color: #000; border: none; padding: 2px 6px; cursor: pointer; font-size: 0.6rem;">RETRY</button>` : ''}
+            <button class="remove-btn" style="background: #ef4444; color: #fff; border: none; padding: 2px 6px; cursor: pointer; font-size: 0.6rem;">DEL</button>
+          </div>
+        </div>
       `;
+
+      const retryBtn = row.querySelector('.retry-btn');
+      if (retryBtn) {
+        retryBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          ds.retry(file.id);
+        });
+      }
+
+      const removeBtn = row.querySelector('.remove-btn');
+      if (removeBtn) {
+        removeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          ds.remove(file.id);
+        });
+      }
+
       fileList.appendChild(row);
     }
     existing.delete(file.id);

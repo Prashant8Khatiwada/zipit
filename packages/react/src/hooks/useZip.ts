@@ -19,7 +19,7 @@
  * ```
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { createZipIt } from '@khatiwadaprashant/zipit-core';
 import type { ProgressStats } from '@khatiwadaprashant/zipit-core';
 
@@ -79,9 +79,6 @@ export function useZip(): UseZipReturn {
         urls.forEach((url) =>
           ds.add(url, {
             folder: folderMap?.get(url),
-          })
-        );
-
           })
         );
 

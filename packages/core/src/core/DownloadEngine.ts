@@ -7,7 +7,7 @@
  * @internal
  */
 
-import { ZipItError, type FileEntry, type ZipItOptions, type ProgressStats, type ProgressHandler, type CompleteHandler, type ErrorHandler, type FileProgressHandler, type FileStatus } from '../types';
+import { ZipItError, type FileEntry, type ZipItOptions, type ProgressStats, type ProgressHandler, type CompleteHandler, type ErrorHandler, type FileProgressHandler, type AddFileOptions } from '../types';
 import { StateStore } from '../store/StateStore';
 import { rafThrottle } from '../utils/helpers';
 import type { WorkerInMessage, WorkerOutMessage } from '../workers/download.worker';
@@ -28,11 +28,13 @@ export class DownloadEngine {
   private activeTransfers = new Set<string>();
   private directoryHandle: FileSystemDirectoryHandle | null = null;
   private _isPaused = false;
+  private concurrency: number;
   private debug: boolean;
   private fetchTimeoutMs: number;
   private maxRetriesPerFile: number;
   private retryDelayMs: number;
   private retryBackoffMultiplier: number;
+  private hydrateTimeoutMs: number;
 
   private listeners: EventMap = {
     progress: [],
@@ -65,6 +67,7 @@ export class DownloadEngine {
     this.maxRetriesPerFile = options.maxRetriesPerFile ?? 3;
     this.retryDelayMs = options.retryDelayMs ?? 1000;
     this.retryBackoffMultiplier = options.retryBackoffMultiplier ?? 2;
+    this.hydrateTimeoutMs = options.hydrateTimeoutMs ?? 5000;
 
     // Throttle progress reporting to animation frames
     this.emitProgress = rafThrottle(() => {
@@ -328,10 +331,6 @@ export class DownloadEngine {
       this._totalBytes += entry.totalBytes;
       this._downloadedBytes += entry.downloadedBytes;
     }
-
-    this.emitProgress();
-    return resumable;
-  }
 
     this.emitProgress();
     return resumable;

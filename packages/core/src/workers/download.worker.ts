@@ -211,13 +211,10 @@ async function fetchWithRetry(
     const fetchController = new AbortController();
     const timeoutId = setTimeout(() => fetchController.abort(), options.timeoutMs);
 
-    // Composite signal
-    const combinedSignal = options.signal; // Simplified for now, real implementation might need AbortSignal.any if available
-
     try {
       const response = await fetch(url, {
         headers: options.headers,
-        signal: fetchController.signal, // We use the timeout signal
+        signal: fetchController.signal,
       });
 
       clearTimeout(timeoutId);
@@ -241,40 +238,4 @@ async function fetchWithRetry(
       delay *= options.retryBackoffMultiplier;
     }
   }
-}
-
-/** Smart failover: HEAD check on 4xx/5xx before giving up. */
-async function fetchWithFallback(
-  url: string,
-  headers: Headers,
-  signal: AbortSignal
-): Promise<Response> {
-  let response: Response;
-
-  try {
-    response = await fetch(url, { headers, signal });
-
-    if (!response.ok && response.status !== 206) {
-      const head = await fetch(url, { method: 'HEAD', signal });
-      if (head.status === 200) {
-        response = await fetch(url, { headers, signal });
-        if (!response.ok)
-          throw new Error(`Download failed with HTTP ${response.status}`);
-      } else {
-        throw new Error(`Resource inaccessible (HTTP ${head.status})`);
-      }
-    }
-  } catch (e: unknown) {
-    const err = e as Error;
-    if (err.name === 'AbortError') throw err;
-    // Network error — attempt HEAD as diagnostic
-    const head = await fetch(url, { method: 'HEAD', signal }).catch(() => null);
-    if (head?.status === 200) {
-      response = await fetch(url, { headers, signal });
-    } else {
-      throw err;
-    }
-  }
-
-  return response;
 }

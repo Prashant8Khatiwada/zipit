@@ -211,7 +211,7 @@ export interface ZipItInstance {
    * Add multiple URLs at once.
    * @example ds.addAll(['https://example.com/a.jpg', 'https://example.com/b.jpg'])
    */
-  addAll: (urls: string[], options?: AddFileOptions) => FileEntry[];
+  addAll: (urls: string[], options?: AddFileOptions) => Promise<FileEntry[]>;
 
   /**
    * Begin downloading all queued files.
@@ -257,6 +257,7 @@ export interface ZipItInstance {
     (event: 'complete', handler: CompleteHandler): () => void;
     (event: 'error', handler: ErrorHandler): () => void;
     (event: 'file-progress', handler: FileProgressHandler): () => void;
+    (event: 'file-removed', handler: FileProgressHandler): () => void;
   };
 
   /**
@@ -267,6 +268,7 @@ export interface ZipItInstance {
     (event: 'complete', handler: CompleteHandler): void;
     (event: 'error', handler: ErrorHandler): void;
     (event: 'file-progress', handler: FileProgressHandler): void;
+    (event: 'file-removed', handler: FileProgressHandler): void;
   };
 
   /**

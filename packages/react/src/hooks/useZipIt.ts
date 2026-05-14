@@ -41,7 +41,7 @@ export interface UseZipItReturn {
   /** Add a single URL to the download queue. */
   add: (url: string, options?: AddFileOptions) => FileEntry;
   /** Add multiple URLs to the download queue. */
-  addAll: (urls: string[], options?: AddFileOptions) => FileEntry[];
+  addAll: (urls: string[], options?: AddFileOptions) => Promise<FileEntry[]>;
   /** Start all queued downloads. Optionally prompt for a save folder. */
   start: (options?: { saveToFolder?: boolean }) => Promise<void>;
   /** Pause active downloads (resumable). */
@@ -128,8 +128,8 @@ export function useZipIt(options: UseZipItOptions = {}): UseZipItReturn {
       onProgress: (stats) => onProgressRef.current?.(stats),
       onComplete: (stats) => onCompleteRef.current?.(stats),
       onError: (err, file) => onErrorRef.current?.(err, file),
-      onFileProgress: (file) => onFileProgressRef.current?.(file),
-      onFileRemoved: (file) => onFileRemovedRef.current?.(file),
+      onFileProgress: (file: FileEntry) => onFileProgressRef.current?.(file),
+      onFileRemoved: (file: FileEntry) => onFileRemovedRef.current?.(file),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

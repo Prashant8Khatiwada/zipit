@@ -155,9 +155,6 @@ export class ZipEngine {
           stream = response.body;
         }
 
-          stream = response.body;
-        }
-
         this.options.onFileStart(req);
         await compressor.addFileStream(req.fileName, stream);
         this.options.onFileEnd(req);

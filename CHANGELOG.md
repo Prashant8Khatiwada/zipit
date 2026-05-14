@@ -5,22 +5,27 @@ All notable changes to DropStream packages will be documented in this file.
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] - 2026-05-14
 
 ### Added
-- Full monorepo scaffold with pnpm workspaces
-- `@dropstream/core` — framework-agnostic download + ZIP engine
-- `@dropstream/react` — `useDropStream` and `useZip` hooks
-- OPFS-backed multi-threaded download workers
-- Byte-level resumable downloads via IndexedDB
-- On-the-fly ZIP streaming with two-layer backpressure
-- File System Access API support for native folder saving
-- Smart failover (HEAD request on 4xx/5xx)
-- GitHub Actions CI/CD pipeline
-- Premium SaaS web app with real-time queue visualization
-- Keyboard shortcuts (Space, R, Esc)
-- Browser capability detection with graceful degradation
-- Full TypeScript strict mode with JSDoc on every export
+- **Production-Grade Engine**: Hardened worker lifecycle with fetch timeouts and auto-retry logic (exponential backoff).
+- **Core APIs**: Added `retry()`, `retryFailed()`, `remove()`, `update()`, and `getFile()` to `ZipItInstance`.
+- **Storage Management**: New `getStorageEstimate()` API to monitor browser storage quotas.
+- **O(1) Progress Tracking**: Refactored `DownloadEngine` to use deltas for statistics, eliminating array iteration on every progress tick.
+- **Improved ZIP Flow**: `ds.zip()` now respects concurrency by leveraging `DownloadEngine` for parallel staging in OPFS.
+- **Deduplication**: Integrated URL + Folder hashing to prevent redundant downloads.
+- **Security**: Filename sanitization to mitigate path traversal risks.
+
+### Changed
+- **Async addAll**: `ds.addAll()` is now async to support high-performance batched IndexedDB operations.
+- **Stable React Hooks**: `useZipIt` now uses stable refs for callbacks, preventing unnecessary re-renders.
+- **Enhanced Types**: Full TypeScript coverage for all new lifecycle events and methods.
+
+### Fixed
+- Fixed race conditions during worker termination.
+- Resolved `QuotaExceededError` handling in OPFS workers.
+- Fixed potential hangs in `hydrate()` using a configurable timeout.
+
 
 ## [0.1.0] - 2026-04-18
 

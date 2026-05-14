@@ -61,10 +61,13 @@ importers:
         version: 2.0.5
       '@vitest/coverage-v8':
         specifier: ^1.5.0
-        version: 1.6.1(vitest@1.6.1(@types/node@20.19.39))
+        version: 1.6.1(vitest@1.6.1(@types/node@20.19.39)(happy-dom@20.9.0))
       fflate:
         specifier: ^0.8.2
         version: 0.8.2
+      happy-dom:
+        specifier: ^20.9.0
+        version: 20.9.0
       streamsaver:
         specifier: ^2.0.6
         version: 2.0.6
@@ -79,7 +82,7 @@ importers:
         version: 3.9.1(@types/node@20.19.39)(rollup@4.60.2)(typescript@5.9.3)(vite@5.4.21(@types/node@20.19.39))
       vitest:
         specifier: ^1.5.0
-        version: 1.6.1(@types/node@20.19.39)
+        version: 1.6.1(@types/node@20.19.39)(happy-dom@20.9.0)
 
   packages/react:
     dependencies:
@@ -101,7 +104,7 @@ importers:
         version: 18.3.28
       '@vitest/coverage-v8':
         specifier: ^1.5.0
-        version: 1.6.1(vitest@1.6.1(@types/node@20.19.39))
+        version: 1.6.1(vitest@1.6.1(@types/node@20.19.39)(happy-dom@20.9.0))
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -116,7 +119,7 @@ importers:
         version: 3.9.1(@types/node@20.19.39)(rollup@4.60.2)(typescript@5.9.3)(vite@5.4.21(@types/node@20.19.39))
       vitest:
         specifier: ^1.5.0
-        version: 1.6.1(@types/node@20.19.39)
+        version: 1.6.1(@types/node@20.19.39)(happy-dom@20.9.0)
 
 packages:
 
@@ -628,6 +631,12 @@ packages:
   '@types/streamsaver@2.0.5':
     resolution: {integrity: sha512-93o0zjV8swEhR2YI57h/2ytbJF8bJh7sI9GNB02TLJHdM4fWDxZuChwfWhyD8vt2ub4kw4rsfZ0C0yAUX+3gcg==}
 
+  '@types/whatwg-mimetype@3.0.2':
+    resolution: {integrity: sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
+
   '@vitest/coverage-v8@1.6.1':
     resolution: {integrity: sha512-6YeRZwuO4oTGKxD3bijok756oktHSIm3eczVVzNe3scqzuhLwltIF3S9ZL/vwOVIpURmU6SnZhziXXAfw8/Qlw==}
     peerDependencies:
@@ -899,6 +908,10 @@ packages:
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
+
+  happy-dom@20.9.0:
+    resolution: {integrity: sha512-GZZ9mKe8r646NUAf/zemnGbjYh4Bt8/MqASJY+pSm5ZDtc3YQox+4gsLI7yi1hba6o+eCsGxpHn5+iEVn31/FQ==}
+    engines: {node: '>=20.0.0'}
 
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
@@ -1501,6 +1514,10 @@ packages:
     peerDependencies:
       typescript: '*'
 
+  whatwg-mimetype@3.0.0:
+    resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
+    engines: {node: '>=12'}
+
   which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
     engines: {node: '>= 8'}
@@ -1513,6 +1530,18 @@ packages:
 
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
+
+  ws@8.20.1:
+    resolution: {integrity: sha512-It4dO0K5v//JtTXuPkfEOaI3uUN87iYPnqo/ZzqCoG3g8uhA66QUMs/SrM0YK7/NAu+r4LMh/9dq2A7k+rHs+w==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
 
   yallist@4.0.0:
     resolution: {integrity: sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==}
@@ -2025,7 +2054,13 @@ snapshots:
 
   '@types/streamsaver@2.0.5': {}
 
-  '@vitest/coverage-v8@1.6.1(vitest@1.6.1(@types/node@20.19.39))':
+  '@types/whatwg-mimetype@3.0.2': {}
+
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 20.19.39
+
+  '@vitest/coverage-v8@1.6.1(vitest@1.6.1(@types/node@20.19.39)(happy-dom@20.9.0))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@bcoe/v8-coverage': 0.2.3
@@ -2040,7 +2075,7 @@ snapshots:
       std-env: 3.10.0
       strip-literal: 2.1.1
       test-exclude: 6.0.0
-      vitest: 1.6.1(@types/node@20.19.39)
+      vitest: 1.6.1(@types/node@20.19.39)(happy-dom@20.9.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -2354,6 +2389,18 @@ snapshots:
       slash: 3.0.0
 
   graceful-fs@4.2.11: {}
+
+  happy-dom@20.9.0:
+    dependencies:
+      '@types/node': 20.19.39
+      '@types/whatwg-mimetype': 3.0.2
+      '@types/ws': 8.18.1
+      entities: 7.0.1
+      whatwg-mimetype: 3.0.0
+      ws: 8.20.1
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   has-flag@4.0.0: {}
 
@@ -2852,7 +2899,7 @@ snapshots:
       '@types/node': 20.19.39
       fsevents: 2.3.3
 
-  vitest@1.6.1(@types/node@20.19.39):
+  vitest@1.6.1(@types/node@20.19.39)(happy-dom@20.9.0):
     dependencies:
       '@vitest/expect': 1.6.1
       '@vitest/runner': 1.6.1
@@ -2876,6 +2923,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 20.19.39
+      happy-dom: 20.9.0
     transitivePeerDependencies:
       - less
       - lightningcss
@@ -2898,6 +2946,8 @@ snapshots:
       semver: 7.7.4
       typescript: 5.9.3
 
+  whatwg-mimetype@3.0.0: {}
+
   which@2.0.2:
     dependencies:
       isexe: 2.0.0
@@ -2908,6 +2958,8 @@ snapshots:
       stackback: 0.0.2
 
   wrappy@1.0.2: {}
+
+  ws@8.20.1: {}
 
   yallist@4.0.0: {}
 

@@ -1,5 +1,16 @@
 # @khatiwadaprashant/zipit-react
 
+## 1.0.0
+
+### Major Changes
+
+- clear
+
+### Patch Changes
+
+- Updated dependencies
+  - @khatiwadaprashant/zipit-core@1.0.0
+
 ## 0.1.2
 
 ### Patch Changes

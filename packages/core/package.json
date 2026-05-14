@@ -1,6 +1,6 @@
 {
   "name": "@khatiwadaprashant/zipit-core",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "High-performance client-side ZIP streaming and resumable batch download engine",
   "license": "MIT",
   "author": "Prashant Khatiwada",

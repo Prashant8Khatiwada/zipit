@@ -111,7 +111,7 @@ const ds = createZipIt(options);
 const entry: FileEntry = ds.add(url, options);
 
 // Add multiple files
-const entries: FileEntry[] = ds.addAll(urls, options);
+const entries: FileEntry[] = await ds.addAll(urls, options);
 ```
 
 #### `AddFileOptions`
@@ -147,6 +147,18 @@ ds.pause();
 
 // Resume paused downloads
 ds.resume();
+
+// Retry a specific failed file
+ds.retry(fileId);
+
+// Retry all files currently in 'error' status
+ds.retryFailed();
+
+// Remove a file from the queue and delete its OPFS cache
+await ds.remove(fileId);
+
+// Update file metadata or filename before starting
+ds.update(fileId, { filename: 'new-name.jpg' });
 
 // Cancel downloads and clear the queue
 // Note: Does NOT delete already-staged OPFS files. Call ds.reset() for full wipe.
@@ -188,6 +200,7 @@ ds.on('progress',      (stats: ProgressStats) => void)
 ds.on('complete',      (stats: ProgressStats) => void)
 ds.on('error',         (error: Error, file: FileEntry) => void)
 ds.on('file-progress', (file: FileEntry) => void)
+ds.on('file-removed',  (file: FileEntry) => void)
 ```
 
 ---
@@ -197,6 +210,12 @@ ds.on('file-progress', (file: FileEntry) => void)
 ```ts
 // Get all tracked files
 const filesMap: Map<string, FileEntry> = ds.getFiles();
+
+// Get a single file by ID
+const file = ds.getFile(fileId);
+
+// Get storage quota/usage estimate
+const { usage, quota } = await ds.getStorageEstimate();
 
 // Get the latest progress snapshot
 const stats: ProgressStats = ds.getProgress();
@@ -577,8 +596,12 @@ const { zip, isZipping } = useZip();
 ```tsx
 const ds = useZipIt({
   onError: (err, file) => {
-    // Re-add the file to retry
-    add(file.url, { filename: file.filename, folder: file.folder });
+    // Standard UI pattern: retry automatically once, then show error
+    if (file.retryCount < 2) {
+      ds.retry(file.id);
+    } else {
+      showErrorToast(`Failed to download ${file.filename}`);
+    }
   }
 });
 ```
@@ -617,8 +640,8 @@ import type {
 
 | Package | npm | Version |
 |:---|:---|:---|
-| Core | `@khatiwadaprashant/zipit-core` | `0.1.2` |
-| React | `@khatiwadaprashant/zipit-react` | `0.1.2` |
+| Core | `@khatiwadaprashant/zipit-core` | `0.2.0` |
+| React | `@khatiwadaprashant/zipit-react` | `0.2.0` |
 
 - **License:** MIT
 - **Repository:** https://github.com/Prashant8Khatiwada/zipit

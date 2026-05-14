@@ -15,12 +15,16 @@
     "release": "pnpm -r --filter '@khatiwadaprashant/zipit-core' --filter '@khatiwadaprashant/zipit-react' publish --access public"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
+    "@changesets/cli": "^2.27.1",
     "prettier": "^3.2.5",
-    "@changesets/cli": "^2.27.1"
+    "typescript": "^5.4.0"
   },
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=9.0.0"
+  },
+  "dependencies": {
+    "@khatiwadaprashant/zipit-core": "link:packages/core",
+    "@khatiwadaprashant/zipit-react": "link:packages/react"
   }
 }

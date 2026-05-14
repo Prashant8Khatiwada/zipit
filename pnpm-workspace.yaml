@@ -3,3 +3,6 @@ packages:
   - 'apps/*'
 allowBuilds:
   esbuild: true
+overrides:
+  '@khatiwadaprashant/zipit-core': link:packages/core
+  '@khatiwadaprashant/zipit-react': link:packages/react

@@ -3,13 +3,20 @@
 [![npm version](https://img.shields.io/npm/v/@khatiwadaprashant/zipit-core?color=7c6fff&style=flat-square)](https://www.npmjs.com/package/@khatiwadaprashant/zipit-core)
 [![Bundle Size](https://img.shields.io/bundlephobia/minzip/@khatiwadaprashant/zipit-core?label=core%20gzipped&color=22d3a0&style=flat-square)](https://bundlephobia.com/package/@khatiwadaprashant/zipit-core)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
-[![Tests](https://img.shields.io/github/actions/workflow/status/rochaksulu/zipit/ci.yml?label=tests&style=flat-square)](https://github.com/rochaksulu/zipit/actions)
+[![Tests](https://img.shields.io/github/actions/workflow/status/rochaksulu/zipit/ci.yml?label=tests&style=flat-square)](https://github.com/Prashant8Khatiwada/zipit/actions)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?style=flat-square)](https://www.typescriptlang.org/)
 
 > **Client-side ZIP streaming and resumable batch download library for the browser.**
 > No server. No RAM spikes. No compromise.
 
 [**→ Live Demo**](https://zipit.dev) · [**Documentation**](https://zipit.dev/docs) · [**npm**](https://www.npmjs.com/package/@khatiwadaprashant/zipit-core)
+
+---
+
+## 🌟 The DropStream / ZipIt Web App
+We've built a premium, standalone Web App demonstrating the full power of the ZipIt core engine. It features a modern, responsive UI with real-time progress visualization, drag-and-drop URL lists, and one-click client-side ZIP downloads.
+
+Check out the source in `apps/web` or try it live at [zipit.dev](https://zipit.dev).
 
 ---
 
@@ -27,11 +34,11 @@ Traditional file downloads are broken for large batches:
 
 ---
 
-## Getting Started
+## 🚀 Quick Start
+
+### Core Library (Framework Agnostic)
 
 ```bash
-npm install @khatiwadaprashant/zipit-core fflate
-# or
 pnpm add @khatiwadaprashant/zipit-core fflate
 ```
 
@@ -45,24 +52,43 @@ ds.add('https://example.com/photo2.jpg', { folder: 'photos/2024' });
 await ds.zip('my-photos.zip'); // ← Streams to disk. No RAM spike. No server.
 ```
 
-### React
+### React Hooks
+
 ```bash
-npm install @khatiwadaprashant/zipit-react @khatiwadaprashant/zipit-core fflate
+pnpm add @khatiwadaprashant/zipit-react @khatiwadaprashant/zipit-core fflate
 ```
 
 ```tsx
 import { useZipIt } from '@khatiwadaprashant/zipit-react';
 
 function Gallery({ urls }) {
-  const { add, start, zip, progress, files } = useZipIt({ concurrency: 4 });
+  const { add, start, zip, progress, isBusy } = useZipIt({ concurrency: 4 });
 
   return (
-    <div>
-      <p>{(progress.overallProgress * 100).toFixed(1)}%</p>
-      <button onClick={() => { urls.forEach(u => add(u)); start({ saveToFolder: true }); }}>
-        Download to Folder
-      </button>
-      <button onClick={() => zip('gallery.zip')}>Download as ZIP</button>
+    <div className="p-4 border rounded-xl bg-card">
+      <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+        <div 
+          className="bg-primary h-full transition-all duration-300"
+          style={{ width: `${progress.overallProgress * 100}%` }}
+        />
+      </div>
+      
+      <p className="mt-2 text-sm">{(progress.overallProgress * 100).toFixed(1)}% Completed</p>
+      
+      <div className="flex gap-2 mt-4">
+        <button 
+          onClick={() => { urls.forEach(u => add(u)); start({ saveToFolder: true }); }}
+          disabled={isBusy}
+        >
+          Download to Folder
+        </button>
+        <button 
+          onClick={() => zip('gallery.zip')}
+          disabled={isBusy}
+        >
+          Download as ZIP
+        </button>
+      </div>
     </div>
   );
 }
@@ -70,107 +96,37 @@ function Gallery({ urls }) {
 
 ---
 
-## Core Features
+## 📘 Comprehensive Integration Guide
+
+For a complete breakdown of architecture, file lifecycle, API surface, and advanced usage patterns, please refer to the [**ZIPIT_INTEGRATION.md**](./ZIPIT_INTEGRATION.md) file. It serves as the authoritative developer blueprint.
+
+---
+
+## ⚙️ Core Features
 
 ### 1. Client-side ZIP Streaming
-ZIP files are assembled in the browser using streaming compression — files are compressed as they download, chunk by chunk:
-
-```ts
-// Stream-zip 500 photos without ever loading them all into RAM
-await ds.zip('vacation-2024.zip');
-```
-
-No server endpoint. No temp files on the server. Works offline for cached OPFS files.
+ZIP files are assembled in the browser using streaming compression — files are compressed as they download, chunk by chunk. Works offline for cached OPFS files.
 
 ### 2. OPFS Staging Pipeline
-Files are downloaded into the Origin Private File System (OPFS) using `FileSystemSyncAccessHandle` for maximum throughput, then streamed to the user's local folder:
-
-```
-Network → [Download Worker] → OPFS → [Main Thread] → Local Disk
-```
+Files are downloaded into the Origin Private File System (OPFS) for maximum throughput, then streamed to the user's local folder:
+`Network → [Download Worker] → OPFS → [Main Thread] → Local Disk`
 
 ### 3. Byte-level Resumability
-Downloads survive page refreshes, browser crashes, and navigation:
-
-```ts
-// On page load — restore a previous session
-const interrupted = await ds.hydrate();
-if (interrupted.length > 0) {
-  await ds.start({ saveToFolder: true }); // Resume where you left off
-}
-```
+Downloads survive page refreshes, browser crashes, and navigation. Use `ds.hydrate()` on mount to restore the previous session.
 
 ### 4. Folder Structure Preservation
 ```ts
 ds.add('https://cdn.example.com/img1.jpg', { folder: 'photos/london/2024' });
-ds.add('https://cdn.example.com/img2.jpg', { folder: 'photos/paris/2024' });
-// → saves as: MyFolder/photos/london/2024/img1.jpg
-//              MyFolder/photos/paris/2024/img2.jpg
 await ds.start({ saveToFolder: true });
+// → saves as: MyFolder/photos/london/2024/img1.jpg
 ```
 
 ### 5. Intelligent Backpressure
-Two-layer backpressure prevents RAM from spiking when disk is slower than network:
-- **Layer 1**: ReadableStream `highWaterMark` (5 MB default)
-- **Layer 2**: Worker mailbox chunk cap (10 in-flight chunks default)
+Two-layer backpressure prevents RAM from spiking when disk is slower than network, ensuring smooth performance even on low-end devices.
 
 ---
 
-## Full API Reference
-
-### `createZipIt(options?)`
-
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `concurrency` | `number` | `3` | Parallel downloads |
-| `zipBackpressureLimit` | `number` | `10` | Max in-flight ZIP chunks |
-| `streamBufferBytes` | `number` | `5242880` | Max ReadableStream buffer (5 MB) |
-| `dbName` | `string` | `'zipit_v1'` | IndexedDB store name |
-| `onProgress` | `ProgressHandler` | — | Progress callback |
-| `onComplete` | `CompleteHandler` | — | Called on batch complete |
-| `onError` | `ErrorHandler` | — | Called on file error |
-| `onFileProgress` | `FileProgressHandler` | — | Per-file state changes |
-
-### Instance Methods
-
-```ts
-const ds = createZipIt(options);
-
-// Queue management
-ds.add(url, { filename?, folder?, totalBytes?, metadata? }): FileEntry
-ds.addAll(urls, options?): FileEntry[]
-
-// Lifecycle
-await ds.start({ saveToFolder?: boolean })
-ds.pause()
-ds.resume()
-ds.cancel()
-
-// Output
-await ds.zip(outputFilename?)          // Stream-zip to disk
-await ds.saveToFolder()                // Pick folder and transfer
-
-// Events (returns unsubscribe fn)
-ds.on('progress', (stats: ProgressStats) => void)
-ds.on('complete', (stats: ProgressStats) => void)
-ds.on('error', (error: Error, file: FileEntry) => void)
-ds.on('file-progress', (file: FileEntry) => void)
-ds.off(event, handler)
-
-// State
-ds.getFiles(): Map<string, FileEntry>
-ds.getProgress(): ProgressStats
-ds.isPaused(): boolean
-ds.isBusy(): boolean
-
-// Session
-await ds.hydrate(): FileEntry[]   // Restore previous session
-await ds.reset()                  // Clear all state + OPFS
-```
-
----
-
-## Browser Compatibility
+## 🌐 Browser Compatibility
 
 | Feature | Chrome | Edge | Firefox | Safari |
 |---|---|---|---|---|
@@ -181,39 +137,15 @@ await ds.reset()                  // Clear all state + OPFS
 
 ---
 
-## Migration from Server-side Zipping
+## 🛠️ Development
 
-**Before:**
-```ts
-// Server-side: blocks a worker for 30+ seconds per batch, OOM risk
-app.get('/zip', async (req, res) => {
-  const archive = archiver('zip');
-  res.pipe(archive);
-  for (const url of req.query.urls) {
-    archive.append(fetch(url), { name: url.split('/').pop() });
-  }
-  await archive.finalize();
-});
-```
-
-**After:**
-```ts
-// Client-side: instant, free, streams directly to disk
-import { createZipIt } from '@khatiwadaprashant/zipit-core';
-const ds = createZipIt();
-urls.forEach(url => ds.add(url));
-await ds.zip('archive.zip');
-```
-
----
-
-## Development
+This project uses `pnpm` workspaces.
 
 ```bash
 # Install all workspace deps
 pnpm install
 
-# Run web app
+# Run the standalone web app
 pnpm dev
 
 # Run tests
@@ -222,18 +154,19 @@ pnpm test
 # Build all packages
 pnpm build
 
-# Publish (on git tag)
-git tag v0.1.0 && git push --tags
+# Publish to npm (using Changesets)
+pnpm changeset version
+pnpm release
 ```
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 PRs welcome! Please follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
 
 ---
 
-## License
+## 📝 License
 
-MIT © Rochak Sulu
+MIT © Prashant Khatiwada

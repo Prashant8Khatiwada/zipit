@@ -23,14 +23,16 @@ export class StreamCompressor {
   private readonly MAX_IN_FLIGHT: number;
   private readonly STREAM_BUFFER_BYTES: number;
 
-  constructor(options: { maxInFlight?: number; streamBufferBytes?: number } = {}) {
+  constructor(options: { maxInFlight?: number; streamBufferBytes?: number; workerUrl?: string | URL } = {}) {
     this.MAX_IN_FLIGHT = options.maxInFlight ?? 10;
     this.STREAM_BUFFER_BYTES = options.streamBufferBytes ?? 5 * 1024 * 1024;
 
-    this.worker = new Worker(
-      new URL('../workers/zip.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    try {
+      const url = options.workerUrl || new URL('../workers/zip.worker.ts', import.meta.url);
+      this.worker = new Worker(url, { type: 'module' });
+    } catch (err: unknown) {
+      throw new Error(`[ZipIt] Failed to create zip worker: ${(err as Error).message}. Ensure the worker URL is correct.`);
+    }
 
     let streamFinalize!: () => void;
     let streamError!: (err: unknown) => void;

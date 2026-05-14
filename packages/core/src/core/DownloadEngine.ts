@@ -35,6 +35,7 @@ export class DownloadEngine {
   private retryDelayMs: number;
   private retryBackoffMultiplier: number;
   private hydrateTimeoutMs: number;
+  private workerUrl?: string | URL;
 
   private listeners: EventMap = {
     progress: [],
@@ -68,6 +69,7 @@ export class DownloadEngine {
     this.retryDelayMs = options.retryDelayMs ?? 1000;
     this.retryBackoffMultiplier = options.retryBackoffMultiplier ?? 2;
     this.hydrateTimeoutMs = options.hydrateTimeoutMs ?? 5000;
+    this.workerUrl = options.workerUrls?.download;
 
     // Throttle progress reporting to animation frames
     this.emitProgress = rafThrottle(() => {
@@ -380,10 +382,24 @@ export class DownloadEngine {
   }
 
   private startWorker(entry: FileEntry): void {
-    const worker = new Worker(
-      new URL('../workers/download.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    let worker: Worker;
+    try {
+      const url = this.workerUrl || new URL('../workers/download.worker.ts', import.meta.url);
+      worker = new Worker(url, { type: 'module' });
+    } catch (err: unknown) {
+      this.log(`worker-creation-failed id=${entry.id}`, err);
+      const e = err as Error;
+      const zipError = new ZipItError(
+        `Failed to create worker: ${e.message}. Ensure the worker URL is correct.`,
+        'WORKER_CRASHED',
+        entry.id
+      );
+      this.updateFile(entry.id, { status: 'error', errorMessage: zipError.message });
+      this.listeners.error.forEach((h) => h(zipError, this.files.get(entry.id)!));
+      this.processQueue();
+      return;
+    }
+
     this.activeWorkers.set(entry.id, worker);
     this.updateFile(entry.id, { status: 'downloading' });
 

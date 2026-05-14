@@ -173,6 +173,16 @@ export interface ZipItOptions {
    * @default ['https:', 'http:']
    */
   allowedProtocols?: string[];
+  /**
+   * Optional custom URLs for the Web Worker scripts.
+   * Useful for Next.js/Turbopack where workers in node_modules might not resolve.
+   */
+  workerUrls?: {
+    /** URL to download.worker.js */
+    download?: string | URL;
+    /** URL to zip.worker.js */
+    zip?: string | URL;
+  };
 }
 
 /** Options for adding an individual file to the queue. */

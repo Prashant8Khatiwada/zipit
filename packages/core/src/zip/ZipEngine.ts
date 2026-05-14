@@ -23,6 +23,7 @@ export interface ZipEngineOptions {
   streamBufferBytes?: number;
   onFileStart?: (req: ZipRequest) => void;
   onFileEnd?: (req: ZipRequest) => void;
+  workerUrl?: string | URL;
 }
 
 /**
@@ -64,7 +65,12 @@ async function triggerStreamDownload(
 }
 
 export class ZipEngine {
-  private options: Required<ZipEngineOptions>;
+  private options: ZipEngineOptions & {
+    maxInFlight: number;
+    streamBufferBytes: number;
+    onFileStart: (req: ZipRequest) => void;
+    onFileEnd: (req: ZipRequest) => void;
+  };
   private _isBusy = false;
 
   constructor(options: ZipEngineOptions = {}) {
@@ -73,6 +79,7 @@ export class ZipEngine {
       streamBufferBytes: options.streamBufferBytes ?? 5 * 1024 * 1024,
       onFileStart: options.onFileStart ?? (() => {}),
       onFileEnd: options.onFileEnd ?? (() => {}),
+      workerUrl: options.workerUrl,
     };
   }
 
@@ -106,6 +113,7 @@ export class ZipEngine {
     const compressor = new StreamCompressor({
       maxInFlight: this.options.maxInFlight,
       streamBufferBytes: this.options.streamBufferBytes,
+      workerUrl: this.options.workerUrl,
     });
     const zipStream = compressor.getStream();
 

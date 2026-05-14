@@ -57,6 +57,7 @@ const DEFAULT_OPTIONS: Required<ZipItOptions> = {
   hydrateTimeoutMs: 5000,
   debug: false,
   allowedProtocols: ['https:', 'http:'],
+  workerUrls: {},
 };
 
 /**
@@ -82,6 +83,7 @@ export function createZipIt(options: ZipItOptions = {}): ZipItInstance {
     onFileEnd: (req) => {
       if (req.opfsId) engine.setFileZipping(req.opfsId, false);
     },
+    workerUrl: resolved.workerUrls?.zip,
   });
 
   // Register top-level option handlers
